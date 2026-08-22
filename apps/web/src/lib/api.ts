@@ -39,9 +39,16 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
   }
 
   // Handle blob responses (e.g. downloads)
-  const contentType = res.headers.get('content-type');
-  if (contentType && (contentType.includes('application/xml') || contentType.includes('spreadsheetml') || contentType.includes('octet-stream'))) {
-    return res.blob() as Promise<T>;
+  const contentType = res.headers.get('content-type') || '';
+  if (
+    contentType.includes('xml') ||
+    contentType.includes('spreadsheet') ||
+    contentType.includes('excel') ||
+    contentType.includes('octet-stream') ||
+    contentType.includes('pdf') ||
+    contentType.includes('zip')
+  ) {
+    return (await res.blob()) as unknown as T;
   }
 
   return res.json();

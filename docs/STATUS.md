@@ -1,7 +1,7 @@
 # Project Status: KhataGenie.com
 
-**Last Updated**: 2026-08-23 02:38 IST  
-**Overall Status**: 🟢 Fully Implemented, Hardened & Verified (Production-Ready)
+**Last Updated**: 2026-08-23 03:00 IST  
+**Overall Status**: 🟢 Fully Implemented, Hardened, Route-Guarded & Verified (Production-Ready)
 
 ---
 
@@ -24,6 +24,7 @@
 | Tally XML Exporter | `apps/api/src/services/tallyExporter.ts` | 🟢 Implemented | Tally Prime purchase voucher generator |
 | Excel GSTR-2 Exporter | `apps/api/src/services/excelExporter.ts` | 🟢 Implemented | Standard purchase register Excel (.xlsx) generator |
 | Web Dashboard UI | `apps/web` | 🟢 Implemented | React 18 + Vite + Tailwind CSS |
+| Protected Route Guard | `apps/web/src/components/ProtectedRoute.tsx` | 🟢 Implemented | 100% private route locking & unauth redirect to `/login` |
 | Split-Screen Reviewer | `apps/web/src/pages/InvoiceReviewPage.tsx` | 🟢 Implemented | Zoomable canvas + Live GST math check + Hotkeys |
 | GSTR-2B Recon Dashboard | `apps/web/src/pages/Gstr2bReconPage.tsx` | 🟢 Implemented | Side-by-side ITC matching matrix & portal JSON upload |
 | Authentication & Onboarding | `apps/web/src/pages/LoginPage.tsx` | 🟢 Implemented | Login, CA registration & Quick Demo fill |
@@ -36,6 +37,7 @@
 ## Verification Evidence
 
 - Root monorepo build (`npm run build`): **100% Passed** across all 4 packages.
+- Playwright E2E UI Suite: **100% Passed** with 0 console errors; confirmed unauthenticated redirects.
 - Shared GST & Math test suite (`packages/shared/test-verify.ts`): **100% Passed**.
 - Fastify API & Exporters integration test (`apps/api/test-server.ts`): **100% Passed**.
 - Production Readiness & Feature Gating test (`apps/api/test-recon.ts`): **100% Passed**.

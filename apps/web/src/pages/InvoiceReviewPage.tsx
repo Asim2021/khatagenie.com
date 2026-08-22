@@ -13,10 +13,12 @@ import { ImageViewer } from '../components/ImageViewer';
 import { fetchApi } from '../lib/api';
 import { validateGstin, getStateFromGstin, verifyInvoiceMath } from '@khatagenie/shared';
 import { InvoiceStatus } from '@khatagenie/types';
+import { useToast } from '../context/ToastContext';
 
 export const InvoiceReviewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [invoice, setInvoice] = useState<any>(null);
   const [clients, setClients] = useState<any[]>([]);
@@ -164,9 +166,15 @@ export const InvoiceReviewPage: React.FC = () => {
           lineItems,
         }),
       });
+      showToast(
+        status === InvoiceStatus.APPROVED
+          ? `Invoice ${invoiceNumber || ''} Approved & Synced`
+          : `Invoice ${invoiceNumber || ''} Rejected`,
+        'success'
+      );
       navigate('/');
     } catch (err: any) {
-      alert(`Save failed: ${err.message}`);
+      showToast(`Save failed: ${err.message}`, 'error');
     } finally {
       setIsSaving(false);
     }

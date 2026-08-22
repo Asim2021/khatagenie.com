@@ -10,6 +10,8 @@ import { LoginPage } from './pages/LoginPage';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 
+import { ProtectedRoute } from './components/ProtectedRoute';
+
 export function App() {
   return (
     <AuthProvider>
@@ -19,12 +21,54 @@ export function App() {
             <Navbar />
             <main className="flex-1">
               <Routes>
-                <Route path="/" element={<InboxPage />} />
-                <Route path="/invoices/:id/review" element={<InvoiceReviewPage />} />
-                <Route path="/clients" element={<ClientsPage />} />
-                <Route path="/exports" element={<ExportsPage />} />
-                <Route path="/reconciliation" element={<Gstr2bReconPage />} />
-                <Route path="/settings/feature-flags" element={<AdminFeatureFlags />} />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <InboxPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/invoices/:id/review"
+                  element={
+                    <ProtectedRoute>
+                      <InvoiceReviewPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/clients"
+                  element={
+                    <ProtectedRoute>
+                      <ClientsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/exports"
+                  element={
+                    <ProtectedRoute>
+                      <ExportsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reconciliation"
+                  element={
+                    <ProtectedRoute>
+                      <Gstr2bReconPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings/feature-flags"
+                  element={
+                    <ProtectedRoute>
+                      <AdminFeatureFlags />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

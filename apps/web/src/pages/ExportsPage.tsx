@@ -8,8 +8,10 @@ import {
 import { fetchApi } from '../lib/api';
 import { FeatureGate } from '../components/FeatureGate';
 import { FEATURE_FLAGS } from '@khatagenie/types';
+import { useToast } from '../context/ToastContext';
 
 export const ExportsPage: React.FC = () => {
+  const { showToast } = useToast();
   const [clients, setClients] = useState<any[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [isExportingTally, setIsExportingTally] = useState<boolean>(false);
@@ -35,8 +37,9 @@ export const ExportsPage: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+      showToast('Tally Prime XML vouchers exported successfully!', 'success');
     } catch (err: any) {
-      alert(`Tally export failed: ${err.message}`);
+      showToast(`Tally export failed: ${err.message}`, 'error');
     } finally {
       setIsExportingTally(false);
     }
@@ -56,8 +59,9 @@ export const ExportsPage: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+      showToast('GSTR-2 Purchase Register Excel exported successfully!', 'success');
     } catch (err: any) {
-      alert(`Excel export failed: ${err.message}`);
+      showToast(`Excel export failed: ${err.message}`, 'error');
     } finally {
       setIsExportingExcel(false);
     }

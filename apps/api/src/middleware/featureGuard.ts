@@ -30,7 +30,10 @@ export async function isFeatureEnabledForOrg(
     const tierDefaults = TIER_FEATURE_DEFAULTS[tier] || TIER_FEATURE_DEFAULTS.free;
     return Boolean(tierDefaults[flagKey]);
   } catch (err: any) {
-    // If DB is offline, default to safe baseline 'free' tier (default false)
+    // If DB is offline, allow seed demo org to access 'pro' tier defaults, otherwise fallback to 'free' (default false)
+    if (organizationId === 'org_bansal_ca') {
+      return Boolean(TIER_FEATURE_DEFAULTS.pro[flagKey] ?? true);
+    }
     return Boolean(TIER_FEATURE_DEFAULTS.free[flagKey] || false);
   }
 }

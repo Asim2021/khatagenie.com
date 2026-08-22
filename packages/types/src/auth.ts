@@ -23,6 +23,7 @@ export interface AuthUser {
   role: UserRole;
   subscriptionTier: 'free' | 'pro' | 'enterprise';
   features: Record<FeatureFlagKey, boolean>;
+  featureOverrides?: Record<string, boolean>;
 }
 
 export interface AuthResponse {

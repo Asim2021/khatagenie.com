@@ -50,11 +50,15 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
 - Added `/ready` database readiness probe and graceful shutdown handlers (`SIGTERM`, `SIGINT`).
 - Implemented global `ToastContext` for user notifications.
 - Enhanced `ImageViewer.tsx` with multi-page pagination controls.
+- Conducted Playwright browser testing and Chrome DevTools audits.
+- Wrapped all private application routes (`/`, `/clients`, `/exports`, `/reconciliation`, `/settings/feature-flags`, `/invoices/:id/review`) in `<ProtectedRoute>`.
+- Updated `Navbar.tsx` to hide internal navigation links and admin controls from unauthenticated visitors, enforcing immediate redirection to `/login`.
 - Added `apps/api/test-recon.ts` integration test suite: 100% Passed.
 - Verified full monorepo build (`npm run build`): 100% Passed across all 4 packages.
 
 ### Problems
-- Prisma DB connection error during offline testing gracefully mitigated with resilient fallback mock records in reconciliation service and default-deny tier fallback in featureGuard.
+- `PROB-003`: Prisma DB connection error during offline testing gracefully mitigated with resilient fallback mock records in reconciliation service and default-deny tier fallback in featureGuard.
+- `PROB-004`: Unauthenticated visitors could previously see internal navigation and access client routes. Resolved by wrapping routes in `ProtectedRoute.tsx` and hiding header links when logged out.
 
 ### Decisions
 - `DEC-005`: Built decoupled background worker queue for Vision OCR to prevent Meta WhatsApp webhook timeouts.
@@ -63,4 +67,5 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
 ### Next Actions
 - Connect live Meta WhatsApp Cloud API credentials in `.env` for production phone testing.
 - Deploy to Railway production environment.
+
 

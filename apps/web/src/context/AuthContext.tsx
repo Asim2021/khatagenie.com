@@ -16,28 +16,36 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('kg_token'));
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const saved = localStorage.getItem('kg_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+    return null;
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [featureOverrides, setFeatureOverrides] = useState<Record<string, boolean>>({});
+  const [featureOverrides, setFeatureOverrides] = useState<Record<string, boolean>>(() => {
+    const savedOverrides = localStorage.getItem('kg_feature_overrides');
+    if (savedOverrides) {
+      try {
+        return JSON.parse(savedOverrides);
+      } catch {}
+    }
+    const savedUser = localStorage.getItem('kg_user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        return parsed.featureOverrides || parsed.features || {};
+      } catch {}
+    }
+    return {};
+  });
 
   useEffect(() => {
     async function loadProfile() {
       if (!token) {
-        // Create mock initial admin session for seamless local preview
-        const mockAdmin: AuthUser = {
-          id: 'usr_admin_01',
-          organizationId: 'org_bansal_ca',
-          email: 'admin@khatagenie.com',
-          fullName: 'CA Rajesh Bansal, FCA',
-          role: 'CA_ADMIN' as any,
-          subscriptionTier: 'pro',
-          features: {
-            ...TIER_FEATURE_DEFAULTS.pro,
-            feature_bulk_approval: true,
-          },
-        };
-        setUser(mockAdmin);
-        setFeatureOverrides(mockAdmin.features);
         setIsLoading(false);
         return;
       }
@@ -45,7 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const res = await fetchApi<{ user: any }>('/auth/me');
         setUser(res.user);
-        setFeatureOverrides(res.user.featureOverrides || {});
+        localStorage.setItem('kg_user', JSON.stringify(res.user));
+        if (res.user.featureOverrides) {
+          setFeatureOverrides((prev) => ({ ...res.user.featureOverrides, ...prev }));
+        }
       } catch (err) {
         console.warn('Failed to restore session from API:', err);
       } finally {
@@ -58,15 +69,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (newToken: string, newUser: AuthUser) => {
     localStorage.setItem('kg_token', newToken);
+    localStorage.setItem('kg_user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
-    setFeatureOverrides(newUser.features || {});
+    const overrides = newUser.featureOverrides || (newUser as any).features || {};
+    setFeatureOverrides(overrides);
+    localStorage.setItem('kg_feature_overrides', JSON.stringify(overrides));
   };
 
   const logout = () => {
     localStorage.removeItem('kg_token');
+    localStorage.removeItem('kg_user');
+    localStorage.removeItem('kg_feature_overrides');
     setToken(null);
     setUser(null);
+    setFeatureOverrides({});
   };
 
   const isFeatureEnabled = (flag: FeatureFlagKey): boolean => {
@@ -79,7 +96,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const toggleFeatureOverride = (flag: FeatureFlagKey, enabled: boolean) => {
-    setFeatureOverrides((prev) => ({ ...prev, [flag]: enabled }));
+    setFeatureOverrides((prev) => {
+      const next = { ...prev, [flag]: enabled };
+      localStorage.setItem('kg_feature_overrides', JSON.stringify(next));
+      return next;
+    });
   };
 
   return (

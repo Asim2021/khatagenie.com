@@ -12,7 +12,10 @@ export interface Toast {
 }
 
 interface ToastContextType {
-  showToast: (toast: Omit<Toast, 'id'>) => void;
+  showToast: {
+    (toast: Omit<Toast, 'id'>): void;
+    (title: string, type?: ToastType, message?: string, duration?: number): void;
+  };
   removeToast: (id: string) => void;
 }
 
@@ -26,14 +29,39 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    ({ type, title, message, duration = 4000 }: Omit<Toast, 'id'>) => {
+    (
+      arg1: Omit<Toast, 'id'> | string,
+      arg2?: ToastType,
+      arg3?: string,
+      arg4: number = 4000
+    ) => {
       const id = `toast_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      setToasts((prev) => [...prev, { id, type, title, message, duration }]);
+      let toastItem: Toast;
 
-      if (duration > 0) {
+      if (typeof arg1 === 'string') {
+        toastItem = {
+          id,
+          title: arg1,
+          type: arg2 || 'info',
+          message: arg3,
+          duration: arg4,
+        };
+      } else {
+        toastItem = {
+          id,
+          type: arg1.type || 'info',
+          title: arg1.title,
+          message: arg1.message,
+          duration: arg1.duration ?? 4000,
+        };
+      }
+
+      setToasts((prev) => [...prev, toastItem]);
+
+      if (toastItem.duration && toastItem.duration > 0) {
         setTimeout(() => {
           removeToast(id);
-        }, duration);
+        }, toastItem.duration);
       }
     },
     [removeToast]

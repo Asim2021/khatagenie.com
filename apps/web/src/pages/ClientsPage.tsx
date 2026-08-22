@@ -7,8 +7,10 @@ import {
   Search
 } from 'lucide-react';
 import { fetchApi } from '../lib/api';
+import { useToast } from '../context/ToastContext';
 
 export const ClientsPage: React.FC = () => {
+  const { showToast } = useToast();
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -92,9 +94,10 @@ export const ClientsPage: React.FC = () => {
       setGstin('');
       setWhatsappPhone('');
       setTallyLedgerName('');
+      showToast(`MSME Client ${businessName} registered successfully!`, 'success');
       loadClients();
     } catch (err: any) {
-      alert(`Failed to add client: ${err.message}`);
+      showToast(`Failed to add client: ${err.message}`, 'error');
     }
   };
 
