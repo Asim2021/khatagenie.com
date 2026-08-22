@@ -1,7 +1,7 @@
 # Project Status: KhataGenie.com
 
-**Last Updated**: 2026-08-23 04:20 IST  
-**Overall Status**: 🟢 Fully Implemented, Hardened, TanStack Cached, Light/Dark Themed & 100% Mobile Responsive (Production-Ready)
+**Last Updated**: 2026-08-23 05:00 IST  
+**Overall Status**: 🟢 High-End Agency Visual Design & 100% Mobile Responsive Table-to-Card Architecture Verified (Production-Ready)
 
 ---
 
@@ -9,40 +9,34 @@
 
 | Package / Component | Directory | Status | Notes |
 |---|---|---|---|
-| Project Documentation | `/docs` | 🟢 Implemented | Core 14 living memory documents active |
+| Visual Design System & Fonts | `apps/web/index.html`, `tailwind.config.js` | 🟢 Implemented | `Plus Jakarta Sans` typography, `spring` cubic-bezier transitions & double-bezel (Doppelrand) tokens |
+| Zero-Horizontal-Scroll Hardening | `apps/web/src/index.css` | 🟢 Implemented | `overflow-x: hidden`, safe-area insets & concentric rounding across all viewport sizes (320px–1920px) |
+| Invoices Inbox Dual-Mode UI | `apps/web/src/pages/InboxPage.tsx` | 🟢 Implemented | Desktop `md:block` table + Mobile `md:hidden` rich interactive double-bezel cards with 1-tap review |
+| GSTR-2B Recon Dual-Mode UI | `apps/web/src/pages/Gstr2bReconPage.tsx` | 🟢 Implemented | Desktop 6-col table + Mobile 2-way comparison cards with Books vs Portal entries, ITC badge, & delta |
+| MSME Clients Directory | `apps/web/src/pages/ClientsPage.tsx` | 🟢 Implemented | Double-bezel cards, click-to-WhatsApp link & responsive modal with zero horizontal scroll |
+| Export Center (Tally & Excel) | `apps/web/src/pages/ExportsPage.tsx` | 🟢 Implemented | Double-bezel export cards with micro-pill format tags and responsive layout |
+| Invoice Review Studio | `apps/web/src/pages/InvoiceReviewPage.tsx` | 🟢 Implemented | Desktop 50/50 split-screen + Mobile Scan/Form switch with math parity banner and zero overflow |
+| Superadmin Feature Flags | `apps/web/src/pages/AdminFeatureFlags.tsx` | 🟢 Implemented | Double-bezel list container with responsive toggle switches and category filters |
+| Light & Dark Theme System | `apps/web/src/context/ThemeContext.tsx` | 🟢 Implemented | Light, Dark, System modes with zero-FOUC head script & high-contrast tokens |
+| Navigation Header & Drawer | `apps/web/src/components/Navbar.tsx` | 🟢 Implemented | Sticky header with sliding mobile drawer and segmented theme selector |
+| Project Documentation | `/docs` | 🟢 Implemented | Core 14 living memory documents synchronized |
 | Shared Types & Flags | `packages/types` | 🟢 Implemented | 14 Feature Flags declared with baseline `false` defaults |
 | Shared GST Utilities | `packages/shared` | 🟢 Implemented | GSTIN validation, State mapping & Decimal Math checks |
 | Backend API Server | `apps/api` | 🟢 Implemented | Fastify 4.27 + JWT + Helmet + CORS + Uploads + /ready probe |
-| Database & ORM | `apps/api/prisma` | 🟢 Implemented | Multi-tenant PostgreSQL models, seed script & fast offline probe |
-| Feature Guard Middleware | `apps/api/src/middleware/featureGuard.ts` | 🟢 Implemented | Route gating with 403 `FEATURE_DISABLED` & default-deny |
-| Modular Vision AI Engine | `apps/api/src/services/vision.ts` | 🟢 Implemented | OpenAI-compatible adapter (NVIDIA/GPT-4o-mini) |
-| WhatsApp Cloud Ingestion | `apps/api/src/services/whatsapp.ts` | 🟢 Implemented | Webhook handler, media download & auto-reply |
-| Background Extraction Queue | `apps/api/src/services/queue.ts` | 🟢 Implemented | Async OCR worker with concurrency limits & retries |
-| GSTR-2B 2-Way Recon Engine | `apps/api/src/services/gstr2bReconciliation.ts` | 🟢 Implemented | Automated ITC matching with ±₹2.00 variance tolerance |
-| Pluggable Storage Service | `apps/api/src/services/storage.ts` | 🟢 Implemented | Local disk & S3/R2 cloud storage adapter |
-| Multi-Page PDF Processor | `apps/api/src/services/pdfProcessor.ts` | 🟢 Implemented | Decomposes multi-page invoice PDFs |
-| Tally XML Exporter | `apps/api/src/services/tallyExporter.ts` | 🟢 Implemented | Tally Prime purchase voucher generator |
-| Excel GSTR-2 Exporter | `apps/api/src/services/excelExporter.ts` | 🟢 Implemented | Standard purchase register Excel (.xlsx) generator |
-| Web Dashboard UI | `apps/web` | 🟢 Implemented | React 18 + Vite + Tailwind CSS |
-| Client-Side Caching | `apps/web/src/lib/queryClient.ts` | 🟢 Implemented | TanStack Query v5 with 5m staleTime & query deduplication |
-| Zero-FOUC Head Theme Script | `apps/web/index.html` | 🟢 Implemented | Eliminates 100% white splash on page refresh |
-| Light & Dark Theme System | `apps/web/src/context/ThemeContext.tsx` | 🟢 Implemented | Light, Dark, System modes with cross-tab and OS sync |
-| 100% Mobile Navigation Drawer | `apps/web/src/components/Navbar.tsx` | 🟢 Implemented | Touch-friendly collapsible mobile menu & theme toggle |
-| Dedicated Branded Auth Layout | `apps/web/src/pages/LoginPage.tsx` | 🟢 Implemented | High-end split-screen brand showcase with value cards |
-| Split-Screen Mobile Switcher | `apps/web/src/pages/InvoiceReviewPage.tsx` | 🟢 Implemented | Desktop 50/50 split + Mobile Scan vs Form toggle |
-| Protected Route Guard | `apps/web/src/components/ProtectedRoute.tsx` | 🟢 Implemented | 100% private route locking & unauth redirect to `/login` |
-| Global Toast Notifications | `apps/web/src/context/ToastContext.tsx` | 🟢 Implemented | Real-time CA user feedback with light/dark contrast |
-| Superadmin Feature Flags | `apps/web/src/pages/AdminFeatureFlags.tsx` | 🟢 Implemented | Interactive UI flag toggle interface with category tabs |
-| Deployment Setup | `railway.json` | 🟢 Implemented | Railway deployment configuration |
 
 ---
 
 ## Verification Evidence
 
-- Root monorepo build (`npm run build`): **100% Passed** across all 4 packages (`types`, `shared`, `api`, `web`).
-- Client caching verification: `@tanstack/react-query` v5 caching integrated across `InboxPage`, `Gstr2bReconPage`, `ClientsPage`, and `InvoiceReviewPage`.
-- Zero-FOUC verification: Synchronous `<script>` in `<head>` and anti-flicker background CSS eliminates white splash on initial load and refresh.
-- Shared GST & Math test suite (`packages/shared/test-verify.ts`): **100% Passed**.
-- Fastify API & Exporters integration test (`apps/api/test-server.ts`): **100% Passed**.
-- Production Readiness & Feature Gating test (`apps/api/test-recon.ts`): **100% Passed**.
-- Zero TypeScript errors across the entire codebase.
+- Root monorepo build (`npm run build`): **100% Passed** with 0 errors across all workspaces (`types`, `shared`, `api`, `web`).
+- Automated Playwright Mobile Viewport Verification (375x812, 390x844, 412x915):
+  - Invoices Inbox (`/`): `scrollWidth === innerWidth` (**0px horizontal overflow**). Dual-mode card rendering verified.
+  - GSTR-2B Match (`/reconciliation`): `scrollWidth === innerWidth` (**0px horizontal overflow**). 2-way comparison cards verified.
+  - MSME Clients (`/clients`): `scrollWidth === innerWidth` (**0px horizontal overflow**). Double-bezel client cards verified.
+  - Export Center (`/exports`): `scrollWidth === innerWidth` (**0px horizontal overflow**). Tally and Excel export cards verified.
+  - Superadmin Flags (`/settings/feature-flags`): `scrollWidth === innerWidth` (**0px horizontal overflow**). Toggle list verified.
+  - Review Studio (`/invoices/:id/review`): `scrollWidth === innerWidth` (**0px horizontal overflow**). Scan vs Form switcher verified.
+- Automated Playwright Desktop Viewport Verification (1280x800):
+  - Desktop data tables rendered with double-bezel containers, monospace financial columns, and status pills.
+  - Light & Dark mode visual contrast verified with Playwright screenshots.
+

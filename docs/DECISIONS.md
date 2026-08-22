@@ -104,3 +104,31 @@ This document tracks all significant architectural and technical decisions made 
 - **Trade-offs**: Adds `@tanstack/react-query` dependency to `apps/web`.
 - **Risks**: None; verified with full build and test suites.
 
+---
+
+## DEC-011: Dual-Mode Table-to-Card Responsive Architecture & Agency-Grade Visual Design System
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Standard HTML tables overflow horizontally on mobile devices (320px–412px viewports), creating clumsy horizontal scrollbars and degraded mobile usability. The platform required a high-end agency visual revamp with 100% zero horizontal scroll.
+- **Alternatives Considered**: 
+  1. Horizontal scrolling tables with `overflow-x: auto` on mobile.
+  2. CSS table column collapsing (hiding non-essential columns).
+  3. Dual-Mode rendering: Full dense HTML table on desktop screens (`md:block`), and high-density, double-bezel interactive cards on mobile screens (`md:hidden`).
+- **Selected Option**: Dual-Mode Table-to-Card architecture (Option 3) powered by Google Font `Plus Jakarta Sans`, `spring` cubic-bezier transitions, and double-bezel (Doppelrand) card tokens.
+- **Reason for Selection**: Completely eliminates horizontal scrolling (`scrollWidth === innerWidth`), ensures 100% of GST metadata and financial figures remain accessible on mobile, and provides 1-tap touch actions (WhatsApp chat, CA review studio, voucher downloads) optimized for mobile fingers.
+- **Trade-offs**: Requires dual template markup in `InboxPage.tsx` and `Gstr2bReconPage.tsx`.
+- **Risks**: None; verified via automated Playwright viewport evaluations across all target screen sizes.
+
+---
+
+## DEC-012: High-Contrast Multi-Tier Button Design System (Light vs Dark Mode)
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Buttons previously used identical emerald background colors and dark text in both light and dark modes, resulting in poor contrast and a washed-out "highlighter" look in Light Mode.
+- **Alternatives Considered**: 
+  1. Universal single-color buttons across both modes.
+  2. Mode-adapted multi-tier button tokens (`.btn-primary`, `.btn-secondary`, `.btn-action`, `.btn-sky`, `.btn-danger`) with distinct light (deep emerald + crisp white text, 7.5:1 WCAG AAA) and dark (neon glowing emerald + obsidian text) contrast treatments.
+- **Selected Option**: Option 2 (`.btn-primary`, `.btn-secondary`, `.btn-action`, etc.) in `index.css`.
+- **Reason for Selection**: Ensures crisp contrast, authoritative visual hierarchy, and distinct aesthetic personality in both Light and Dark modes.
+- **Trade-offs**: None; unified in global design tokens.
+- **Risks**: None; verified with Playwright screenshots in both modes.

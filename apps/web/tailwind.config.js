@@ -8,7 +8,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       colors: {
@@ -26,7 +26,16 @@ export default {
         },
       },
       screens: {
-        xs: '475px',
+        xs: '380px',
+      },
+      boxShadow: {
+        'bezel-light': '0 0 0 1px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.02), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+        'bezel-dark': '0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.4), 0 16px 32px -4px rgba(0, 0, 0, 0.6)',
+        'inner-glow': 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.12)',
+      },
+      transitionTimingFunction: {
+        'spring': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'smooth': 'cubic-bezier(0.32, 0.72, 0, 1)',
       },
     },
   },

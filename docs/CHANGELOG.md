@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-08-23
+
+### Added
+- **Dual-Mode Table-to-Card Architecture**:
+  - `InboxPage.tsx`: Dense desktop data table (`md:block`) and rich interactive double-bezel cards (`md:hidden`) with GSTIN state pills, financial breakdown, live math balance check, and 1-tap review button.
+  - `Gstr2bReconPage.tsx`: Desktop comparison table and 2-way mobile comparison cards with Books vs Portal entries, Section 16(2)(aa) ITC badge, tax breakdown, variance delta, and CA audit notes.
+- **High-End Agency Visual Design System**:
+  - Imported Google Font `Plus Jakarta Sans` as primary interface typeface alongside `Inter` and `JetBrains Mono`.
+  - Configured `spring` (`cubic-bezier(0.16, 1, 0.3, 1)`) and `smooth` transition easing curves in `tailwind.config.js`.
+  - Double-bezel (`Doppelrand`) container classes with outer translucent border and inner glowing surface (`shadow-inner-glow`).
+- **Zero Horizontal Scroll Hardening**:
+  - Global `overflow-x: hidden` and `max-width: 100vw` enforcement across all viewport widths (320px–1920px).
+  - Responsive collapse of all forms, modals, tables, and toolbars verified with automated Playwright browser testing (`scrollWidth === innerWidth`).
+
 ## [0.3.0] - 2026-08-23
 
 ### Added

@@ -15,6 +15,14 @@
     color-scheme: dark;
   }
 
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
   body {
     @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-150;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -22,14 +30,64 @@
   }
 }
 
+/* Double-Bezel (Doppelrand) Architecture Classes */
+.doppelrand-shell {
+  @apply rounded-2xl md:rounded-3xl p-1 bg-slate-200/60 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 shadow-sm dark:shadow-xl transition-all duration-300;
+}
+
+.doppelrand-core {
+  @apply rounded-[calc(1rem-0.125rem)] md:rounded-[calc(1.5rem-0.25rem)] bg-white dark:bg-slate-900/90 p-4 sm:p-5 border border-slate-100 dark:border-slate-800/60 shadow-inner-glow transition-all;
+}
+
+/* High-Contrast Multi-Tier Button Design System */
+.btn-primary {
+  @apply inline-flex items-center justify-center font-bold text-xs tracking-wide rounded-xl px-4 py-2.5 
+         bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-sm shadow-emerald-700/25 border border-emerald-700/30
+         dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:active:bg-emerald-600 dark:text-slate-950 dark:font-black dark:border-emerald-400/40 dark:shadow-[0_0_20px_rgba(16,185,129,0.25)]
+         active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center font-bold text-xs tracking-wide rounded-xl px-4 py-2.5
+         bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-300 shadow-sm
+         dark:bg-slate-900/90 dark:hover:bg-slate-800 dark:active:bg-slate-700 dark:text-slate-200 dark:border-slate-800 dark:shadow-inner-glow
+         active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-50;
+}
+
+.btn-danger {
+  @apply inline-flex items-center justify-center font-bold text-xs tracking-wide rounded-xl px-3.5 py-2
+         bg-rose-50 hover:bg-rose-600 active:bg-rose-700 text-rose-700 hover:text-white border border-rose-200 hover:border-rose-700 shadow-sm
+         dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:active:bg-rose-500/30 dark:text-rose-400 dark:border-rose-500/30
+         active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-50;
+}
+
+.btn-sky {
+  @apply inline-flex items-center justify-center font-bold text-xs tracking-wide rounded-xl px-4 py-2.5
+         bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white shadow-sm shadow-sky-700/25 border border-sky-700/30
+         dark:bg-sky-500 dark:hover:bg-sky-400 dark:active:bg-sky-600 dark:text-slate-950 dark:font-black dark:border-sky-400/40 dark:shadow-[0_0_20px_rgba(14,165,233,0.25)]
+         active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-50;
+}
+
+.btn-action {
+  @apply inline-flex items-center justify-center font-bold text-xs rounded-xl px-3 py-1.5
+         bg-slate-100 hover:bg-emerald-600 text-slate-700 hover:text-white border border-slate-200 hover:border-emerald-600 shadow-sm
+         dark:bg-slate-800/80 dark:hover:bg-emerald-500 dark:text-slate-200 dark:hover:text-slate-950 dark:border-slate-700 dark:hover:border-emerald-400
+         active:scale-[0.98] transition-all duration-150 cursor-pointer;
+}
+
+/* Interactive Button-in-Button Trailing Icon Pill */
+.btn-trailing-icon {
+  @apply w-6 h-6 rounded-full bg-slate-900/10 dark:bg-white/15 flex items-center justify-center transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5;
+}
+
 /* Custom Scrollbar for High-Density Accounting Tables */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 html.dark ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #090d16;
 }
 
 html.light ::-webkit-scrollbar-track {
@@ -37,17 +95,17 @@ html.light ::-webkit-scrollbar-track {
 }
 
 html.dark ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
+  background: #253347;
+  border-radius: 4px;
 }
 
 html.light ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 html.dark ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #334155;
 }
 
 html.light ::-webkit-scrollbar-thumb:hover {
@@ -74,3 +132,4 @@ html.light .image-canvas-container {
 .safe-pt {
   padding-top: env(safe-area-inset-top, 1rem);
 }
+

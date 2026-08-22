@@ -36,27 +36,24 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo & Name */}
-          <div className="flex items-center space-x-4 lg:space-x-6">
-            <Link to="/" className="flex items-center space-x-3 group">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
-                <Sparkles className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+          <div className="flex items-center space-x-3 lg:space-x-5 shrink-0">
+            <Link to="/" className="flex items-center space-x-2.5 group shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
+                <Sparkles className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-950 stroke-[2.5]" />
               </div>
-              <div>
-                <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none whitespace-nowrap">
                   Khata<span className="text-emerald-600 dark:text-emerald-400">Genie</span>
-                  <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    CA PRO
-                  </span>
                 </span>
-                <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden xs:block">
-                  WhatsApp Bill Digitizer & Tax Sync
-                </p>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap uppercase tracking-wide">
+                  CA PRO
+                </span>
               </div>
             </Link>
 
             {/* Desktop Navigation Links */}
             {user && (
-              <nav className="hidden md:flex items-center space-x-1 pl-4 border-l border-slate-200 dark:border-slate-800">
+              <nav className="hidden md:flex items-center space-x-1 pl-3 lg:pl-4 border-l border-slate-200 dark:border-slate-800">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;

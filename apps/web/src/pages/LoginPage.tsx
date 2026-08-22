@@ -22,7 +22,6 @@ import {
   UserPlus
 } from 'lucide-react';
 import { fetchApi } from '../lib/api';
-import { ThemeToggle } from '../components/ThemeToggle';
 
 export const LoginPage: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false);
@@ -165,28 +164,22 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Column: Authentication Card & Theme Control (Full-Width on Mobile for Instant Access) */}
+      {/* Right Column: Authentication Card (Full-Width on Mobile for Instant Access) */}
       <div className="w-full lg:w-1/2 flex flex-col justify-between p-4 sm:p-8 lg:p-14 relative bg-slate-50 dark:bg-slate-950 min-h-screen">
-        {/* Top Control Bar with Brand Badge on Mobile */}
-        <div className="flex items-center justify-between mb-4 sm:mb-8">
-          <div className="lg:hidden flex items-center space-x-2.5">
+        {/* Top Mobile Brand Bar (Hidden on Desktop) */}
+        <div className="lg:hidden flex items-center justify-between mb-4 sm:mb-6">
+          <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-400 to-emerald-600 flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/20">
               <Sparkles className="w-4 h-4 stroke-[2.5]" />
             </div>
-            <div>
-              <span className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
+              <span className="font-black text-sm text-slate-900 dark:text-white leading-none">
                 Khata<span className="text-emerald-600 dark:text-emerald-400">Genie</span>
-                <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  CA PRO
-                </span>
+              </span>
+              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 uppercase tracking-wide">
+                CA PRO
               </span>
             </div>
-          </div>
-          <div className="ml-auto flex items-center space-x-2 sm:space-x-3">
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
-              Appearance:
-            </span>
-            <ThemeToggle />
           </div>
         </div>
 
@@ -199,7 +192,7 @@ export const LoginPage: React.FC = () => {
               onClick={() => setIsRegister(false)}
               className={`flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
                 !isRegister
-                  ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-slate-700'
+                  ? 'bg-emerald-600 text-white shadow-sm border border-emerald-700/30 dark:bg-emerald-500 dark:text-slate-950 dark:border-emerald-400/40'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -211,7 +204,7 @@ export const LoginPage: React.FC = () => {
               onClick={() => setIsRegister(true)}
               className={`flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
                 isRegister
-                  ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-slate-700'
+                  ? 'bg-emerald-600 text-white shadow-sm border border-emerald-700/30 dark:bg-emerald-500 dark:text-slate-950 dark:border-emerald-400/40'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -346,7 +339,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 mt-3 cursor-pointer"
+                className="btn-primary w-full py-3.5 space-x-2 mt-3"
               >
                 {isLoading ? (
                   <>

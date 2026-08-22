@@ -1,30 +1,29 @@
 # Session Handoff: KhataGenie.com
 
-**Current Objective**: TanStack Query (v5) Client Caching, Fast-Fail DB Resilience, and Branded Split-Screen Auth Layout.
+**Current Objective**: High-End Agency Visual Design Revamp & 100% Mobile Responsive Table-to-Card Architecture.
 
 **Current State**:
 - Full monorepo stack is 100% built, tested, and verified across all 4 packages (`types`, `shared`, `api`, `web`).
-- Phase 10 fully implemented: `@tanstack/react-query` v5 caching integrated across all React dashboard pages (`InboxPage`, `Gstr2bReconPage`, `ClientsPage`, `InvoiceReviewPage`).
-- Fast-fail DB connection availability probe with 15s TTL caching added in `apps/api/src/lib/prisma.ts`.
-- `AppLayout` in `apps/web/src/App.tsx` isolates `/login` route, removing the global `<Navbar />` on the auth page.
-- `LoginPage.tsx` upgraded to a dual-column branded layout featuring KhataGenie's brand identity, tagline, 3 core value cards, Section 43B(h) compliance badges, and firm registration form.
-- Full light/dark mode theming, Zero-FOUC head script, and mobile navigation active.
+- Phase 11 fully implemented and verified:
+  - Dual-mode Table-to-Card responsive architecture on all tables (`InboxPage.tsx` and `Gstr2bReconPage.tsx`).
+  - Google Font `Plus Jakarta Sans` typography with `spring` cubic-bezier transitions.
+  - Double-bezel (Doppelrand) card tokens with glowing surfaces (`shadow-inner-glow`).
+  - Automated Playwright browser verification completed on mobile (375x812, 390x844, 412x915) and desktop (1280x800) confirming 0px horizontal scroll (`scrollWidth === innerWidth`).
 - All 14 living memory documentation files in `/docs` are synchronized with repository reality.
 
 **Recently Completed**:
-- Integrated `@tanstack/react-query` with standard 5-minute `staleTime`, 30-minute `gcTime`, and query deduplication.
-- Refactored `Gstr2bReconPage`, `InboxPage`, `ClientsPage`, and `InvoiceReviewPage` to use `useQuery` and `useMutation` with automatic cache invalidation.
-- Created `queryClient.ts` and wrapped `App.tsx` in `<QueryClientProvider>`.
-- Replaced the standalone login card with a full-bleed split-screen branded layout with theme toggle.
-- Added fast DB availability caching to avoid socket hang when running locally against a remote/offline database.
+- Converted `InboxPage.tsx` from desktop-only table to dual-mode: Desktop Table (`md:block`) and Mobile Cards (`md:hidden`) with GSTIN state pills, financial breakdown, live math balance check, and 1-tap review button.
+- Converted `Gstr2bReconPage.tsx` from desktop-only table to dual-mode: Desktop Comparison Table and Mobile 2-Way Comparison Cards with Books vs Portal entries, ITC badge, tax breakdown, variance delta, and CA audit notes.
+- Hardened `ClientsPage.tsx`, `ExportsPage.tsx`, `InvoiceReviewPage.tsx`, and `AdminFeatureFlags.tsx` with double-bezel cards and zero-overflow layout.
+- Conducted Playwright browser testing and visual screenshot capture in dark and light modes.
 - Verified monorepo build (`npm run build`) and integration test suites: 100% Passed.
 
 **Open Problems**:
-- None (`PROB-001` through `PROB-006` resolved and tested).
+- None.
 
 **Important Decisions**:
-- `DEC-009`: Synchronous inline head script for zero-FOUC theming, Tailwind class strategy, and mobile-first split-screen tab switcher.
 - `DEC-010`: TanStack Query (v5) client caching architecture and dedicated branded auth layout.
+- `DEC-011`: Dual-Mode Table-to-Card Responsive Architecture & Agency-Grade Visual Design System.
 
 **Things the Next Agent Should Know**:
 - Start backend in development with `npm run dev:api`.
