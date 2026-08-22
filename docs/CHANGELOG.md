@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.2.2] - 2026-08-23
+## [0.3.0] - 2026-08-23
+
+### Added
+- **Production-Grade Light & Dark Mode System**: Full support for `'light'`, `'dark'`, and `'system'` themes, persistent `localStorage` cache, dynamic OS `matchMedia` sync, and cross-tab theme broadcast.
+- **Zero-FOUC Architecture**: Synchronous inline head script and anti-flicker CSS eliminating 100% of white splash on initial load and refresh.
+- **Theme Toggle Component**: Sleek desktop theme dropdown and mobile segmented theme selector in `Navbar.tsx`.
+- **100% Mobile-Friendly Responsiveness**:
+  - Collapsible mobile navigation drawer with touch target optimization (min 44px).
+  - Adaptive Split-Screen Reviewer with instant mobile toggle between Document Scan and Extracted Form.
+  - Touch-friendly horizontal scroll containers and mobile-responsive cards across all 7 pages.
+- **Comprehensive Themed UI Polish**: Handcrafted high-contrast light mode (slate-50/white cards with emerald accents) and dark mode (slate-950/slate-900 surfaces) across all accounting tables, forms, modals, and toolbars.
+
 
 ### Security
 - **Meta WhatsApp Webhook Verification**: Enforced timing-safe HMAC-SHA256 signature verification in `whatsappRoutes` and `whatsappService`, returning HTTP 401 on spoofed payloads.

@@ -4,7 +4,8 @@ import {
   Plus, 
   Building2, 
   MessageSquare, 
-  Search
+  Search,
+  X
 } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { useToast } from '../context/ToastContext';
@@ -103,191 +104,216 @@ export const ClientsPage: React.FC = () => {
 
   const filteredClients = clients.filter(
     (c) =>
-      c.businessName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.gstin?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.whatsappPhone?.includes(searchQuery)
+      c.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.gstin || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.whatsappPhone.includes(searchQuery)
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 safe-pb">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <Users className="w-5 h-5 text-emerald-400" />
-            MSME Client Directory & WhatsApp Mappings
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+            <Users className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            <span>MSME Clients Directory</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Map WhatsApp phone numbers to your clients so incoming receipt photos are automatically routed to the right firm.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Map WhatsApp sender mobile numbers to MSME businesses and their corresponding Tally ledgers.
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold transition-colors shadow-lg shadow-emerald-500/20"
+          className="inline-flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20 shrink-0"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Add MSME Client</span>
+          <span>Add New Client</span>
         </button>
       </div>
 
       {/* Search Bar */}
       <div className="relative max-w-md">
-        <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
-          placeholder="Search client name, GSTIN, phone..."
+          placeholder="Search business name, GSTIN, or phone..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50"
+          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors shadow-sm dark:shadow-none"
         />
       </div>
 
       {/* Clients Grid */}
-      {isLoading ? (
-        <div className="py-12 text-center text-slate-500 text-xs font-medium">Loading MSME clients...</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredClients.map((client) => (
-          <div
-            key={client.id}
-            className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-4 hover:border-slate-700 transition-colors shadow-xl"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">{client.businessName}</h3>
-                  <p className="text-[11px] text-slate-400">{client.tradeName || 'General Enterprise'}</p>
-                </div>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Active
-              </span>
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-slate-800 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 text-[11px]">GSTIN</span>
-                <span className="font-mono font-semibold text-slate-200">
-                  {client.gstin || 'Unregistered'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 text-[11px] flex items-center gap-1">
-                  <MessageSquare className="w-3 h-3 text-emerald-400" />
-                  WhatsApp Ingest
-                </span>
-                <span className="font-mono font-semibold text-emerald-400">
-                  +{client.whatsappPhone}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 text-[11px]">Tally Purchase Ledger</span>
-                <span className="text-[11px] font-mono text-slate-300 truncate max-w-[180px]">
-                  {client.tallyLedgerName || 'Default'}
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
-              <span>{client._count?.invoices || 0} Bills Digitized</span>
-              <span className="text-emerald-400 font-medium cursor-pointer hover:underline">
-                View Invoices →
-              </span>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {isLoading ? (
+          <div className="col-span-full py-12 text-center text-slate-500 dark:text-slate-400 text-xs">
+            Loading MSME clients...
           </div>
-        ))}
+        ) : filteredClients.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-slate-500 dark:text-slate-400 space-y-2">
+            <Building2 className="w-8 h-8 mx-auto opacity-40 text-emerald-500" />
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">No Clients Found</p>
+            <p className="text-xs">Click "Add New Client" to register an MSME business.</p>
+          </div>
+        ) : (
+          filteredClients.map((client) => (
+            <div
+              key={client.id}
+              className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 hover:border-emerald-500/40 transition-all shadow-sm dark:shadow-lg flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-start justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                    {client.businessName.substring(0, 2).toUpperCase()}
+                  </div>
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                    Active
+                  </span>
+                </div>
+
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-3 truncate">
+                  {client.businessName}
+                </h3>
+                {client.tradeName && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{client.tradeName}</p>
+                )}
+
+                <div className="mt-4 space-y-2 text-xs border-t border-slate-100 dark:border-slate-800/80 pt-3">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                    <span>GSTIN:</span>
+                    <span className="font-mono text-slate-900 dark:text-slate-200 font-medium">
+                      {client.gstin || 'Unregistered'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                    <span>WhatsApp Phone:</span>
+                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3" />
+                      +{client.whatsappPhone}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                    <span>Tally Ledger:</span>
+                    <span className="text-slate-800 dark:text-slate-300 truncate max-w-[150px]">
+                      {client.tallyLedgerName || 'Default Purchase'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 dark:border-slate-800/80 pt-3 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                <span>{client._count?.invoices || 0} Invoices Received</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold cursor-pointer hover:underline">
+                  View Ledger &rarr;
+                </span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
-      )}
 
       {/* Add Client Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white">Add New MSME Client</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                Register New MSME Client
+              </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-white text-xs"
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateClient} className="space-y-4 text-xs">
+            <form onSubmit={handleCreateClient} className="space-y-4">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">
-                  Business Legal Name *
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Legal Business Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Bansal Steels & Pipes"
+                  placeholder="e.g. Bansal Electrical Works"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500/50"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">
-                  Client GSTIN (15-Characters)
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Trade / Brand Name
                 </label>
                 <input
                   type="text"
-                  placeholder="07AAAAA0000A1Z5"
-                  value={gstin}
-                  onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 font-mono text-slate-100 focus:outline-none focus:border-emerald-500/50"
+                  placeholder="e.g. Bansal Lights Delhi"
+                  value={tradeName}
+                  onChange={(e) => setTradeName(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  GSTIN (15-Character)
+                </label>
+                <input
+                  type="text"
+                  maxLength={15}
+                  placeholder="e.g. 07AABCB1234A1Z5"
+                  value={gstin}
+                  onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   WhatsApp Phone Number (with Country Code) *
                 </label>
                 <input
-                  type="text"
+                  type="tel"
                   required
-                  placeholder="919811000000"
+                  placeholder="e.g. 919811000000"
                   value={whatsappPhone}
                   onChange={(e) => setWhatsappPhone(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 font-mono text-slate-100 focus:outline-none focus:border-emerald-500/50"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Photos sent from this number will automatically be routed to this client.
-                </p>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">
-                  Default Tally Purchase Ledger Name
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Tally Prime Ledger Name
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. GST Purchase @ 18%"
+                  placeholder="e.g. Bansal Electrical - Purchase A/c"
                   value={tallyLedgerName}
                   onChange={(e) => setTallyLedgerName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-100 focus:outline-none focus:border-emerald-500/50"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-3">
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/20"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition-colors shadow-lg shadow-emerald-500/20"
                 >
-                  Save Client
+                  Save MSME Client
                 </button>
               </div>
             </form>

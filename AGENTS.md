@@ -1,3 +1,11 @@
+## Core Execution Directives
+
+Assign the following constraint block to the agent's system prompt to enforce strict output boundaries, prevent scope creep, and trigger internal logic verification:
+
+```text
+Provide highly concise, actionable outputs without conversational fluff. Make zero assumptions, introduce no out-of-scope changes, and strictly avoid over-engineering. Retain all critical technical details in your solution. Briefly outline your reasoning to verify accuracy before providing the final answer.
+```
+
 <!-- code-review-graph MCP tools -->
 
 ## MCP Tools: code-review-graph

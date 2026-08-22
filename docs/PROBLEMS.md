@@ -64,8 +64,20 @@ This document tracks known issues, risks, root causes, and resolutions.
   2. Gated dev seed login strictly to `NODE_ENV !== 'production'` and required exact password matching.
   3. Configured environment-aware CORS whitelisting (`FRONTEND_URL`) and `X-Content-Type-Options: nosniff`.
   4. Enforced strict MIME-type allowlist (`image/*` & `application/pdf`) with HTTP 415 rejection.
+---
+
+## PROB-006: White Splash on Page Load & Refresh (FOUC)
+- **Date Discovered**: 2026-08-23
+- **Severity**: Medium
+- **Symptoms**: When reloading or opening any page in the dark theme, the browser momentarily flashed a bright white background before React hydration and Tailwind CSS classes took effect.
+- **Impact**: Jarring visual glitch and eye strain for Chartered Accountants reviewing bills in dark environments.
+- **Root Cause**: Default browser HTML canvas paints `#ffffff` before external CSS stylesheets and React JS bundles download, parse, and execute. No synchronous theme resolution existed in `<head>`.
+- **Current Solution**:
+  1. Injected a synchronous, blocking `<script>` at the very top of `<head>` in `index.html` that reads `localStorage.getItem('khatagenie_theme')` or queries `window.matchMedia('(prefers-color-scheme: dark)')` and sets `dark`/`light` class and `style.backgroundColor` on `document.documentElement` before DOM paint.
+  2. Defined critical inline CSS background styles (`html.dark { background-color: #020617; } html.light { background-color: #f8fafc; }`).
 - **Remaining Risk**: None.
-- **Status**: Resolved & Verified in `apps/api/test-server.ts`.
+- **Status**: Resolved & Verified (Zero-FOUC).
+
 
 
 

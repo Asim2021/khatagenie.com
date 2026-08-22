@@ -80,12 +80,17 @@ This document tracks all significant architectural and technical decisions made 
 
 ---
 
-## DEC-008: Production Security Hardening & Zero-Trust Verification
+---
+
+## DEC-009: Zero-FOUC Synchronous Head Script, Class Theming & Mobile-First Split Screen
 - **Date**: 2026-08-23
 - **Status**: Accepted
-- **Context**: Senior security threat model audit identified potential vulnerabilities in webhook signature handling, dev auth fallback, and file upload MIME validation.
-- **Alternatives Considered**: Document as deployment caveats vs Hard-code defenses into the application runtime.
-- **Selected Option**: Enforced runtime timing-safe HMAC-SHA256 signature verification, strict `NODE_ENV !== 'production'` auth fallback gating, environment-aware CORS whitelisting, and strict MIME type upload allowlists.
-- **Reason for Selection**: Assures zero-trust security posture and guarantees security compliance out of the box.
+- **Context**: Need a robust, production-grade Light and Dark mode system supporting Light, Dark, and System preference with zero white flash (FOUC) on refresh, and full 100% mobile responsiveness across all pages.
+- **Alternatives Considered**: Client-only React `useEffect` theme loading, Next.js / SSR-only theming, Synchronous blocking `<script>` in `<head>` + Tailwind `darkMode: 'class'` + responsive mobile drawer & split-screen switcher.
+- **Selected Option**: Synchronous inline `<script>` in `index.html` `<head>` coupled with Tailwind CSS `darkMode: 'class'`, reactive `ThemeContext`, cross-tab broadcast, and adaptive mobile tab switcher for split-screen review.
+- **Reason for Selection**: Synchronous head execution runs prior to initial paint, completely eliminating the white splash on reload (FOUC). The mobile tab switcher provides a first-class mobile experience on small phone screens without sacrificing desktop split-screen productivity.
+- **Trade-offs**: Requires dark mode class coverage across all UI cards, tables, badges, and modals.
+- **Risks**: None; verified across all pages.
+
 
 

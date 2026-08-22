@@ -4,17 +4,15 @@ import {
   AlertTriangle, 
   HelpCircle, 
   UploadCloud, 
-  ArrowRightLeft,
-  Sparkles,
-  ShieldAlert,
-  Filter,
-  Loader2
+  ArrowRightLeft, 
+  Sparkles, 
+  ShieldAlert, 
+  Filter, 
+  Loader2 
 } from 'lucide-react';
 import { fetchApi } from '../lib/api';
-import { FeatureGate } from '../components/FeatureGate';
-import { FEATURE_FLAGS, Gstr2bMatchStatus, ReconciliationSummary } from '@khatagenie/types';
+import { Gstr2bMatchStatus, ReconciliationSummary } from '@khatagenie/types';
 import { useToast } from '../context/ToastContext';
-
 
 export const Gstr2bReconPage: React.FC = () => {
   const [summary, setSummary] = useState<ReconciliationSummary | null>(null);
@@ -33,7 +31,6 @@ export const Gstr2bReconPage: React.FC = () => {
       setSummary(res);
     } catch (err: any) {
       console.warn('Reconciliation sample load fallback:', err);
-      // Client-side fallback mock if server not running with DB
       setSummary({
         period: '082026',
         totalGstr2bRecords: 3,
@@ -134,17 +131,12 @@ export const Gstr2bReconPage: React.FC = () => {
           body: JSON.stringify(json),
         });
         setSummary(res);
-        showToast({
-          type: 'success',
-          title: 'GSTR-2B Reconciled',
-          message: `Processed ${res.totalGstr2bRecords} portal records against ${res.totalBooksRecords} books entries.`,
-        });
+        showToast(
+          `GSTR-2B Reconciled! Processed ${res.totalGstr2bRecords} portal records against ${res.totalBooksRecords} books entries.`,
+          'success'
+        );
       } catch (err: any) {
-        showToast({
-          type: 'error',
-          title: 'Invalid JSON File',
-          message: err.message || 'Please upload a valid GST Portal GSTR-2B JSON file.',
-        });
+        showToast(`Reconciliation failed: ${err.message || 'Please upload a valid GST Portal JSON file.'}`, 'error');
       } finally {
         setIsLoading(false);
       }
@@ -155,218 +147,250 @@ export const Gstr2bReconPage: React.FC = () => {
   const filteredItems = summary?.items.filter((item) => {
     if (filterStatus === 'ALL') return true;
     return item.matchStatus === filterStatus;
-  }) || [];
+  });
 
   return (
-    <FeatureGate
-      flag={FEATURE_FLAGS.GSTR2B_RECONCILIATION}
-      fallback={
-        <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-          <div className="inline-flex p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mb-4">
-            <ShieldAlert className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-bold text-white">GSTR-2B Reconciliation Gated</h2>
-          <p className="text-slate-400 mt-2 max-w-md mx-auto text-sm">
-            Automated 2-Way GSTR-2B ITC Matching is an Enterprise & Pro feature. Enable it in Superadmin Feature Flags.
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 safe-pb">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+            <ArrowRightLeft className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            <span>GSTR-2B 2-Way ITC Reconciliation</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Automated 2-way comparison between digitized WhatsApp accounting books and GST Portal GSTR-2B filing returns.
           </p>
         </div>
-      }
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="px-2.5 py-1 text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full">
-                Rule 36(4) Compliant
+
+        {/* Upload Portal JSON Button */}
+        <div className="flex items-center space-x-3">
+          <label className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
+            <UploadCloud className="w-4 h-4 stroke-[2.5]" />
+            <span>Upload GSTR-2B JSON</span>
+            <input
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={isLoading}
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* Summary KPI Cards Grid */}
+      {summary && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg transition-all">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Matched Invoices
+            </p>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                {summary.matchedCount}
               </span>
-              <span className="text-xs text-slate-500">Period: August 2026</span>
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h1 className="text-2xl font-bold text-white mt-1">GSTR-2B vs Books 2-Way ITC Reconciliation</h1>
-            <p className="text-slate-400 text-sm mt-0.5">
-              Cross-verify client WhatsApp bills against GST portal supplier filings to guarantee 100% accurate Input Tax Credit.
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2">
+              ITC 100% Eligible under Section 16(2)(aa)
             </p>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <label className="cursor-pointer inline-flex items-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm px-4 py-2 rounded-xl shadow-lg shadow-emerald-900/30 transition-all">
-              <UploadCloud className="w-4 h-4" />
-              <span>Upload GSTR-2B JSON</span>
-              <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
-            </label>
-            <button
-              onClick={loadSampleReconciliation}
-              disabled={isLoading}
-              className="inline-flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-sm px-3.5 py-2 rounded-xl border border-slate-700 transition-colors"
-            >
+          <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg transition-all">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Missing in Books
+            </p>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
+                {summary.missingInBooksCount}
+              </span>
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2">
+              Filed on Portal, but missing in WhatsApp scans
+            </p>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg transition-all">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Missing in GSTR-2B
+            </p>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-2xl font-bold font-mono text-rose-600 dark:text-rose-400">
+                {summary.missingInGstr2bCount}
+              </span>
+              <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2">
+              Supplier pending GSTR-1 filing
+            </p>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg transition-all">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Total Books ITC
+            </p>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-white">
+                ₹{summary.totalItcAvailableBooks.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+              <Sparkles className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 font-mono">
+              Period: {summary.period}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Tabs */}
+      <div className="flex items-center space-x-1.5 overflow-x-auto pb-1">
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center mr-1">
+          <Filter className="w-3.5 h-3.5 mr-1" /> Filter:
+        </span>
+        {[
+          { id: 'ALL', label: 'All Items' },
+          { id: Gstr2bMatchStatus.MATCHED, label: 'Matched' },
+          { id: Gstr2bMatchStatus.MISSING_IN_BOOKS, label: 'Missing in Books' },
+          { id: Gstr2bMatchStatus.MISSING_IN_GSTR2B, label: 'Missing in 2B' },
+          { id: Gstr2bMatchStatus.TAX_MISMATCH, label: 'Tax Mismatch' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setFilterStatus(tab.id)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+              filterStatus === tab.id
+                ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border border-slate-300 dark:border-slate-700 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-900'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Reconciliation Comparison Table */}
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-xl transition-all">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-100/90 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 font-semibold">
+              <tr>
+                <th className="py-3.5 px-4">Status & Score</th>
+                <th className="py-3.5 px-4">Digitized Books Entry</th>
+                <th className="py-3.5 px-4">GSTR-2B Portal Entry</th>
+                <th className="py-3.5 px-4 font-mono">Tax Amount</th>
+                <th className="py-3.5 px-4 font-mono">ITC Eligibility</th>
+                <th className="py-3.5 px-4">CA Reconciliation Notes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80">
               {isLoading ? (
-                <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 text-emerald-400" />
-              )}
-              <span>{isLoading ? 'Reconciling...' : 'Reload Demo'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Metric Cards */}
-        {summary && (
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 my-6">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Matched ITC</p>
-              <div className="flex items-baseline space-x-2 mt-2">
-                <span className="text-2xl font-bold text-emerald-400">{summary.matchedCount}</span>
-                <span className="text-xs text-emerald-500/80">Invoices</span>
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">100% Eligible to Claim</p>
-            </div>
-
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tax Mismatches</p>
-              <div className="flex items-baseline space-x-2 mt-2">
-                <span className="text-2xl font-bold text-amber-400">{summary.taxMismatchCount}</span>
-                <span className="text-xs text-amber-500/80">Needs Review</span>
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">Variance &gt; ₹2.00</p>
-            </div>
-
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Missing in Books</p>
-              <div className="flex items-baseline space-x-2 mt-2">
-                <span className="text-2xl font-bold text-purple-400">{summary.missingInBooksCount}</span>
-                <span className="text-xs text-purple-500/80">Unclaimed</span>
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">Filed by Supplier in GSTR-1</p>
-            </div>
-
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Missing in GSTR-2B</p>
-              <div className="flex items-baseline space-x-2 mt-2">
-                <span className="text-2xl font-bold text-rose-400">{summary.missingInGstr2bCount}</span>
-                <span className="text-xs text-rose-500/80">Supplier Default</span>
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">Rule 36(4) ITC Restricted</p>
-            </div>
-
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm col-span-2 lg:col-span-1">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Claimable ITC</p>
-              <div className="flex items-baseline space-x-1 mt-2">
-                <span className="text-xl font-bold text-white">₹{summary.totalItcAvailableGstr2b.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <p className="text-[11px] text-emerald-400 mt-1">Matched 2B Balance</p>
-            </div>
-          </div>
-        )}
-
-        {/* Filter Tabs */}
-        <div className="flex items-center space-x-2 mb-4 overflow-x-auto pb-2">
-          <span className="text-xs text-slate-400 flex items-center mr-2">
-            <Filter className="w-3.5 h-3.5 mr-1" /> Filter:
-          </span>
-          {[
-            { key: 'ALL', label: 'All Records' },
-            { key: Gstr2bMatchStatus.MATCHED, label: 'Matched' },
-            { key: Gstr2bMatchStatus.TAX_MISMATCH, label: 'Tax Mismatch' },
-            { key: Gstr2bMatchStatus.MISSING_IN_BOOKS, label: 'Missing in Books' },
-            { key: Gstr2bMatchStatus.MISSING_IN_GSTR2B, label: 'Missing in 2B' },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setFilterStatus(tab.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                filterStatus === tab.key
-                  ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Reconciliation Comparison Table */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-950/80 text-slate-400 uppercase tracking-wider border-b border-slate-800">
                 <tr>
-                  <th className="py-3 px-4">Match Status</th>
-                  <th className="py-3 px-4">Supplier & GSTIN</th>
-                  <th className="py-3 px-4">Invoice No & Date</th>
-                  <th className="py-3 px-4 text-right">Books Tax (₹)</th>
-                  <th className="py-3 px-4 text-right">GSTR-2B Tax (₹)</th>
-                  <th className="py-3 px-4 text-right">Variance</th>
-                  <th className="py-3 px-4">Audit Action / Note</th>
+                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-500 mb-2" />
+                    <span>Reconciling GSTR-2B records...</span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {filteredItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      {item.matchStatus === Gstr2bMatchStatus.MATCHED && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <CheckCircle2 className="w-3 h-3 mr-1" /> Matched
-                        </span>
-                      )}
-                      {item.matchStatus === Gstr2bMatchStatus.TAX_MISMATCH && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          <AlertTriangle className="w-3 h-3 mr-1" /> Tax Mismatch
-                        </span>
-                      )}
-                      {item.matchStatus === Gstr2bMatchStatus.MISSING_IN_BOOKS && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                          <ArrowRightLeft className="w-3 h-3 mr-1" /> Missing in Books
-                        </span>
-                      )}
-                      {item.matchStatus === Gstr2bMatchStatus.MISSING_IN_GSTR2B && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                          <HelpCircle className="w-3 h-3 mr-1" /> Missing in 2B
-                        </span>
-                      )}
-                    </td>
-
+              ) : filteredItems?.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                    No reconciliation items matching filter.
+                  </td>
+                </tr>
+              ) : (
+                filteredItems?.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  >
+                    {/* Status */}
                     <td className="py-3.5 px-4">
-                      <p className="font-semibold text-white truncate max-w-xs">
-                        {item.booksSupplierName || item.gstr2bSupplierName || 'Unknown Vendor'}
-                      </p>
-                      <p className="text-[11px] font-mono text-slate-400">
-                        {item.booksSupplierGstin || item.gstr2bSupplierGstin}
-                      </p>
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded-full border ${
+                          item.matchStatus === Gstr2bMatchStatus.MATCHED
+                            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
+                            : item.matchStatus === Gstr2bMatchStatus.MISSING_IN_BOOKS
+                            ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'
+                            : item.matchStatus === Gstr2bMatchStatus.MISSING_IN_GSTR2B
+                            ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'
+                            : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20'
+                        }`}
+                      >
+                        {item.matchStatus}
+                      </span>
                     </td>
 
-                    <td className="py-3.5 px-4 font-mono">
-                      <p className="text-white">{item.booksInvoiceNumber || item.gstr2bInvoiceNumber}</p>
-                      <p className="text-[11px] text-slate-500">
-                        {item.booksInvoiceDate || item.gstr2bInvoiceDate}
-                      </p>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right font-mono font-medium text-slate-200">
-                      {item.booksTaxAmount !== undefined ? `₹${item.booksTaxAmount.toFixed(2)}` : '—'}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right font-mono font-medium text-emerald-400">
-                      {item.gstr2bTaxAmount !== undefined ? `₹${item.gstr2bTaxAmount.toFixed(2)}` : '—'}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right font-mono">
-                      {item.taxVariance !== undefined && item.taxVariance > 0 ? (
-                        <span className="text-amber-400 font-semibold">+₹{item.taxVariance.toFixed(2)}</span>
+                    {/* Books Entry */}
+                    <td className="py-3.5 px-4">
+                      {item.booksSupplierName ? (
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-slate-200">
+                            {item.booksSupplierName}
+                          </p>
+                          <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                            GSTIN: {item.booksSupplierGstin} • Bill: {item.booksInvoiceNumber}
+                          </p>
+                        </div>
                       ) : (
-                        <span className="text-slate-500">₹0.00</span>
+                        <span className="text-slate-400 italic text-[11px]">Not found in Books</span>
                       )}
                     </td>
 
-                    <td className="py-3.5 px-4 text-xs text-slate-400">
-                      {item.notes || '—'}
+                    {/* GSTR-2B Entry */}
+                    <td className="py-3.5 px-4">
+                      {item.gstr2bSupplierName ? (
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-slate-200">
+                            {item.gstr2bSupplierName}
+                          </p>
+                          <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                            GSTIN: {item.gstr2bSupplierGstin} • Bill: {item.gstr2bInvoiceNumber}
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic text-[11px]">Not on GST Portal</span>
+                      )}
+                    </td>
+
+                    {/* Tax Amount */}
+                    <td className="py-3.5 px-4 font-mono">
+                      <p className="font-bold text-slate-900 dark:text-slate-100">
+                        ₹{(item.gstr2bTaxAmount || item.booksTaxAmount || 0).toFixed(2)}
+                      </p>
+                      {typeof item.taxVariance === 'number' && item.taxVariance > 0 && (
+                        <p className="text-[10px] text-rose-500">Δ ₹{item.taxVariance.toFixed(2)}</p>
+                      )}
+                    </td>
+
+                    {/* ITC Eligibility */}
+                    <td className="py-3.5 px-4">
+                      {item.matchStatus === Gstr2bMatchStatus.MATCHED ? (
+                        <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-xs flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> 100% Eligible
+                        </span>
+                      ) : item.matchStatus === Gstr2bMatchStatus.MISSING_IN_GSTR2B ? (
+                        <span className="text-rose-600 dark:text-rose-400 font-semibold text-xs flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5" /> Ineligible (Rule 36(4))
+                        </span>
+                      ) : (
+                        <span className="text-amber-600 dark:text-amber-400 font-semibold text-xs flex items-center gap-1">
+                          <HelpCircle className="w-3.5 h-3.5" /> Action Required
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Notes */}
+                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400 text-[11px] max-w-xs">
+                      {item.notes}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
-    </FeatureGate>
+    </div>
   );
 };

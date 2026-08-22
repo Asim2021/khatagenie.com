@@ -10,7 +10,6 @@ import {
   ChevronRight 
 } from 'lucide-react';
 
-
 interface ImageViewerProps {
   src: string;
   alt?: string;
@@ -35,6 +34,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number; dist?: number }>({ x: 0, y: 0 });
 
   const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.25, 4));
   const handleZoomOut = () => setScale((prev) => Math.max(prev - 0.25, 0.5));
@@ -48,7 +48,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // primary button only
+    if (e.button !== 0) return;
     setIsDragging(true);
     setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
   };
@@ -73,6 +73,51 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     }
   };
 
+  // Touch Support for Mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setIsDragging(true);
+      touchStartRef.current = {
+        x: touch.clientX - position.x,
+        y: touch.clientY - position.y,
+      };
+    } else if (e.touches.length === 2) {
+      // Pinch gesture start
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchStartRef.current.dist = dist;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isDragging) {
+      const touch = e.touches[0];
+      setPosition({
+        x: touch.clientX - touchStartRef.current.x,
+        y: touch.clientY - touchStartRef.current.y,
+      });
+    } else if (e.touches.length === 2 && touchStartRef.current.dist) {
+      // Pinch to zoom
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const factor = currentDist / touchStartRef.current.dist;
+      if (Math.abs(factor - 1) > 0.05) {
+        setScale((prev) => Math.min(Math.max(prev * (factor > 1 ? 1.05 : 0.95), 0.5), 4));
+        touchStartRef.current.dist = currentDist;
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    touchStartRef.current.dist = undefined;
+  };
+
   // Build CSS filter string
   const filterStyle = [
     highContrast ? 'contrast(180%) brightness(110%) grayscale(100%)' : '',
@@ -82,51 +127,51 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     .join(' ');
 
   return (
-    <div className="relative flex flex-col h-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+    <div className="relative flex flex-col h-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xl transition-colors duration-150">
       {/* Top Floating Control Bar */}
-      <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center space-x-1.5 bg-slate-900/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-slate-800 shadow-xl pointer-events-auto">
+      <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <div className="flex items-center space-x-1 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg pointer-events-auto">
           <button
             onClick={handleZoomIn}
-            title="Zoom In (Wheel Up)"
-            className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-colors"
+            title="Zoom In"
+            className="p-1.5 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
-          <span className="text-[11px] font-mono font-medium text-slate-400 px-1 min-w-[40px] text-center">
+          <span className="text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-400 px-1 min-w-[36px] text-center">
             {Math.round(scale * 100)}%
           </span>
           <button
             onClick={handleZoomOut}
-            title="Zoom Out (Wheel Down)"
-            className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-colors"
+            title="Zoom Out"
+            className="p-1.5 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
-          <div className="w-px h-4 bg-slate-800 mx-1" />
+          <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1" />
           <button
             onClick={handleRotate}
             title="Rotate 90°"
-            className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-colors"
+            className="p-1.5 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <RotateCw className="w-4 h-4" />
           </button>
           <button
             onClick={() => setHighContrast(!highContrast)}
             title="Thermal Receipt High-Contrast Filter"
-            className={`p-1.5 rounded transition-colors ${
+            className={`p-1.5 rounded-lg transition-colors ${
               highContrast
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <SunMedium className="w-4 h-4" />
           </button>
-          <div className="w-px h-4 bg-slate-800 mx-1" />
+          <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1" />
           <button
             onClick={handleReset}
             title="Reset View"
-            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded transition-colors"
+            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -134,21 +179,21 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
         {/* Multi-Page Navigation Controls */}
         {pageCount > 1 && (
-          <div className="flex items-center space-x-1.5 bg-slate-900/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-slate-800 shadow-xl pointer-events-auto">
+          <div className="flex items-center space-x-1.5 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg pointer-events-auto">
             <button
               onClick={() => onPageChange && onPageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage <= 1}
-              className="p-1 text-slate-300 hover:text-white disabled:opacity-30 rounded transition-colors"
+              className="p-1 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white disabled:opacity-30 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-[11px] font-mono font-semibold text-emerald-400 px-1">
+            <span className="text-[11px] font-mono font-semibold text-emerald-600 dark:text-emerald-400 px-1">
               Page {currentPage} / {pageCount}
             </span>
             <button
               onClick={() => onPageChange && onPageChange(Math.min(pageCount, currentPage + 1))}
               disabled={currentPage >= pageCount}
-              className="p-1 text-slate-300 hover:text-white disabled:opacity-30 rounded transition-colors"
+              className="p-1 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white disabled:opacity-30 rounded-lg transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -156,7 +201,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         )}
 
         {highContrast && (
-          <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-lg pointer-events-auto">
+          <span className="bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md pointer-events-auto">
             Thermal Contrast Mode
           </span>
         )}
@@ -169,6 +214,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
         className="relative flex-1 w-full h-full overflow-hidden image-canvas-container flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
       >
@@ -178,33 +226,26 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
               transition: isDragging ? 'none' : 'transform 0.15s ease-out',
             }}
-            className="origin-center will-change-transform"
+            className="flex items-center justify-center max-w-full max-h-full p-4 pointer-events-none"
           >
             <img
               src={src}
               alt={alt}
               style={{ filter: filterStyle }}
-              className="max-h-[85vh] max-w-full object-contain rounded-lg shadow-2xl pointer-events-none border border-slate-800/60"
-              onError={(e) => {
-                // Fallback placeholder image if local upload not found
-                (e.target as HTMLElement).style.display = 'none';
-              }}
+              className="max-w-none rounded-lg shadow-2xl transition-all duration-150 select-none object-contain max-h-[80vh]"
+              draggable={false}
             />
           </div>
         ) : (
-          <div className="text-center p-8 text-slate-500">
-            <FileQuestion className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-            <p className="text-sm font-medium">No invoice bill scan attached</p>
+          <div className="text-center p-8 text-slate-400 dark:text-slate-600 space-y-3">
+            <FileQuestion className="w-12 h-12 mx-auto opacity-50" />
+            <p className="text-xs font-semibold">No Document Scan Available</p>
+            <p className="text-[11px] max-w-xs mx-auto">
+              Waiting for WhatsApp bill image upload or direct file drag & drop.
+            </p>
           </div>
         )}
-      </div>
-
-      {/* Bottom Hint */}
-      <div className="px-4 py-2 bg-slate-900/60 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
-        <span>Click & drag to pan | Scroll to zoom</span>
-        <span className="font-mono">Rotation: {rotation}°</span>
       </div>
     </div>
   );
 };
-
