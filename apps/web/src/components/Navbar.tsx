@@ -7,7 +7,10 @@ import {
   Sliders, 
   Sparkles, 
   MessageSquare,
-  ShieldCheck
+  ShieldCheck,
+  ArrowRightLeft,
+  LogOut,
+  LogIn
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { FeatureGate } from './FeatureGate';
@@ -15,10 +18,12 @@ import { FEATURE_FLAGS } from '@khatagenie/types';
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+
 
   const navItems = [
     { label: 'Invoices Inbox', path: '/', icon: FileText },
+    { label: 'GSTR-2B Match', path: '/reconciliation', icon: ArrowRightLeft, flag: FEATURE_FLAGS.GSTR2B_RECONCILIATION },
     { label: 'MSME Clients', path: '/clients', icon: Users },
     { label: 'Export Center', path: '/exports', icon: Download },
   ];
@@ -49,11 +54,11 @@ export const Navbar: React.FC = () => {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
-                return (
+                const linkElement = (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
                       isActive
                         ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -63,6 +68,15 @@ export const Navbar: React.FC = () => {
                     <span>{item.label}</span>
                   </Link>
                 );
+
+                if (item.flag) {
+                  return (
+                    <FeatureGate key={item.path} flag={item.flag}>
+                      {linkElement}
+                    </FeatureGate>
+                  );
+                }
+                return linkElement;
               })}
             </nav>
           </div>
@@ -90,22 +104,40 @@ export const Navbar: React.FC = () => {
               <Sliders className="w-4 h-4" />
             </Link>
 
-            {/* User Profile Pill */}
-            <div className="flex items-center space-x-2.5 pl-3 border-l border-slate-800">
-              <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-emerald-400">
-                CA
+            {/* User Profile / Auth Pill */}
+            {user ? (
+              <div className="flex items-center space-x-2.5 pl-3 border-l border-slate-800">
+                <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-emerald-400">
+                  CA
+                </div>
+                <div className="hidden lg:block text-left">
+                  <p className="text-xs font-semibold text-slate-200 leading-tight">{user.fullName || 'Bansal & Associates'}</p>
+                  <p className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+                    <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                    {user.organizationName || 'Connaught Place, Delhi'}
+                  </p>
+                </div>
+                <button
+                  onClick={logout}
+                  title="Sign Out"
+                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
-              <div className="hidden lg:block text-left">
-                <p className="text-xs font-semibold text-slate-200 leading-tight">{user?.fullName || 'Bansal & Associates'}</p>
-                <p className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
-                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                  Connaught Place, Delhi
-                </p>
-              </div>
-            </div>
+            ) : (
+              <Link
+                to="/login"
+                className="inline-flex items-center space-x-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3.5 py-1.5 rounded-lg text-xs transition-colors"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>
     </header>
   );
 };
+

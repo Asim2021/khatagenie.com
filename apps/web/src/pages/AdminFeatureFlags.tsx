@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Sliders, 
-  ShieldAlert
+  ShieldAlert,
+  Filter
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -12,11 +13,20 @@ import {
 
 export const AdminFeatureFlags: React.FC = () => {
   const { user, isFeatureEnabled, toggleFeatureOverride } = useAuth();
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
   const flagKeys = Object.values(FEATURE_FLAGS) as FeatureFlagKey[];
 
+  const categories = ['ALL', 'ingestion', 'ai', 'review', 'export', 'reconciliation', 'admin'];
+
+  const filteredKeys = flagKeys.filter((key) => {
+    if (selectedCategory === 'ALL') return true;
+    const meta = FEATURE_FLAG_METADATA[key];
+    return meta?.category === selectedCategory;
+  });
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-5">
         <div>
@@ -45,9 +55,29 @@ export const AdminFeatureFlags: React.FC = () => {
         </div>
       </div>
 
+      {/* Category Tabs */}
+      <div className="flex items-center space-x-2 overflow-x-auto pb-1">
+        <span className="text-xs text-slate-500 flex items-center mr-1">
+          <Filter className="w-3.5 h-3.5 mr-1" /> Category:
+        </span>
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors ${
+              selectedCategory === cat
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 bg-slate-900 hover:bg-slate-800'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       {/* Flags List */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl divide-y divide-slate-800/80">
-        {flagKeys.map((key) => {
+        {filteredKeys.map((key) => {
           const meta = FEATURE_FLAG_METADATA[key];
           const isEnabled = isFeatureEnabled(key);
 
@@ -87,3 +117,4 @@ export const AdminFeatureFlags: React.FC = () => {
     </div>
   );
 };
+

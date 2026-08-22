@@ -10,24 +10,29 @@ export async function isFeatureEnabledForOrg(
   organizationId: string,
   flagKey: FeatureFlagKey
 ): Promise<boolean> {
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    select: { subscriptionTier: true, featureOverrides: true },
-  });
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { subscriptionTier: true, featureOverrides: true },
+    });
 
-  if (!org) return false;
+    if (!org) return false;
 
-  const tier = (org.subscriptionTier as SubscriptionTier) || 'free';
-  const overrides = (org.featureOverrides as Record<string, boolean>) || {};
+    const tier = (org.subscriptionTier as SubscriptionTier) || 'free';
+    const overrides = (org.featureOverrides as Record<string, boolean>) || {};
 
-  // Check explicit override first
-  if (flagKey in overrides) {
-    return Boolean(overrides[flagKey]);
+    // Check explicit override first
+    if (flagKey in overrides) {
+      return Boolean(overrides[flagKey]);
+    }
+
+    // Fallback to tier default
+    const tierDefaults = TIER_FEATURE_DEFAULTS[tier] || TIER_FEATURE_DEFAULTS.free;
+    return Boolean(tierDefaults[flagKey]);
+  } catch (err: any) {
+    // If DB is offline, default to safe baseline 'free' tier (default false)
+    return Boolean(TIER_FEATURE_DEFAULTS.free[flagKey] || false);
   }
-
-  // Fallback to tier default
-  const tierDefaults = TIER_FEATURE_DEFAULTS[tier] || TIER_FEATURE_DEFAULTS.free;
-  return Boolean(tierDefaults[flagKey]);
 }
 
 /**

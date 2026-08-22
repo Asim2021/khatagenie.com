@@ -47,3 +47,24 @@ This document tracks all significant architectural and technical decisions made 
 - **Reason for Selection**: Strong ACID guarantees, native JSONB support for storing complete unparsed AI responses for auditability, and type-safe Prisma Client generation.
 - **Trade-offs**: Migration management required.
 - **Risks**: Schema changes require migration tracking (`prisma migrate`).
+
+---
+
+## DEC-005: Decoupled Background Worker Queue for Vision OCR
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Long-running Vision AI extraction (5-15s per bill) could cause Meta WhatsApp webhooks to time out if handled synchronously.
+- **Alternatives Considered**: Synchronous route handler, BullMQ / Redis, In-memory concurrency worker queue with exponential backoff.
+- **Selected Option**: In-memory concurrency-limited worker queue (`ExtractionQueue`) with exponential backoff retries.
+- **Reason for Selection**: Eliminates external Redis dependency for lightweight single-instance and staging deployments while ensuring instant `200 OK` acknowledgment to Meta webhooks.
+
+---
+
+## DEC-006: GSTR-2B 2-Way Reconciliation Matching Standard
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: CAs need automated cross-verification of client WhatsApp bills against government GSTR-2B filing JSONs to enforce Rule 36(4) Input Tax Credit compliance.
+- **Alternatives Considered**: Exact matching only, Fuzzy normalized invoice number + GSTIN matching with ±₹2.00 rounding tolerance.
+- **Selected Option**: Fuzzy normalized matching with ±₹2.00 tax variance tolerance and 4-state categorization (Matched, Tax Mismatch, Missing in Books, Missing in 2B).
+- **Reason for Selection**: Handles realistic real-world invoice number variations (e.g. `INV-001` vs `INV001`) and standard rounding adjustments while detecting missing credits.
+

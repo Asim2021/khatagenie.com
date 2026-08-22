@@ -32,13 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: 'CA_ADMIN' as any,
           subscriptionTier: 'pro',
           features: {
-            feature_whatsapp_ingestion: true,
-            feature_ai_vision_extraction: true,
-            feature_split_screen_review: true,
-            feature_tally_xml_export: true,
-            feature_excel_export: true,
-            feature_direct_upload: true,
-            feature_advanced_gstin_validation: true,
+            ...TIER_FEATURE_DEFAULTS.pro,
             feature_bulk_approval: true,
           },
         };

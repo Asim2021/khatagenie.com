@@ -13,14 +13,15 @@ import { invoiceRoutes } from './routes/invoices';
 import { clientRoutes } from './routes/clients';
 import { exportRoutes } from './routes/exports';
 import { whatsappRoutes } from './routes/whatsapp';
-
-dotenv.config({ path: path.join(__dirname, '../.env') });
+import { reconciliationRoutes } from './routes/reconciliation';
+import { prisma } from './lib/prisma';
+import { env } from './lib/env';
 
 const server = fastify({
   logger: {
-    level: process.env.LOG_LEVEL || 'info',
+    level: env.LOG_LEVEL || 'info',
     transport:
-      process.env.NODE_ENV === 'development'
+      env.NODE_ENV === 'development'
         ? {
             target: 'pino-pretty',
             options: {
@@ -51,12 +52,12 @@ async function buildServer() {
   });
 
   await server.register(jwt, {
-    secret: process.env.JWT_SECRET || 'khatagenie_super_secure_jwt_secret_2026_delhi',
+    secret: env.JWT_SECRET,
   });
 
   await server.register(multipart, {
     limits: {
-      fileSize: 15 * 1024 * 1024, // 15MB max
+      fileSize: 25 * 1024 * 1024, // 25MB max
     },
   });
 
@@ -66,7 +67,7 @@ async function buildServer() {
     prefix: '/uploads/',
   });
 
-  // 2. Health check route
+  // 2. Health & Readiness check routes
   server.get('/health', async () => {
     return {
       status: 'healthy',
@@ -76,12 +77,31 @@ async function buildServer() {
     };
   });
 
+  server.get('/ready', async (request, reply) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return {
+        status: 'ready',
+        database: 'connected',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (err: any) {
+      reply.status(503);
+      return {
+        status: 'not_ready',
+        database: 'disconnected',
+        error: err.message,
+      };
+    }
+  });
+
   // 3. Register API Modules
   await server.register(authRoutes, { prefix: '/api/v1/auth' });
   await server.register(invoiceRoutes, { prefix: '/api/v1/invoices' });
   await server.register(clientRoutes, { prefix: '/api/v1/clients' });
   await server.register(exportRoutes, { prefix: '/api/v1/exports' });
   await server.register(whatsappRoutes, { prefix: '/api/v1/whatsapp' });
+  await server.register(reconciliationRoutes, { prefix: '/api/v1/reconciliation' });
 
   // 4. Global Error Handler
   server.setErrorHandler((error, request, reply) => {
@@ -95,8 +115,8 @@ async function buildServer() {
   return server;
 }
 
-const PORT = Number(process.env.PORT) || 4000;
-const HOST = process.env.HOST || '0.0.0.0';
+const PORT = Number(env.PORT) || 4000;
+const HOST = env.HOST || '0.0.0.0';
 
 if (require.main === module) {
   buildServer()
@@ -109,6 +129,17 @@ if (require.main === module) {
         app.log.info(`🚀 KhataGenie Fastify Server running at ${address}`);
         app.log.info(`📊 Health check available at ${address}/health`);
       });
+
+      // Graceful shutdown handling
+      const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
+      signals.forEach((sig) => {
+        process.on(sig, async () => {
+          app.log.info(`Received ${sig}, closing server gracefully...`);
+          await app.close();
+          await prisma.$disconnect();
+          process.exit(0);
+        });
+      });
     })
     .catch((err) => {
       console.error('Failed to start server:', err);
@@ -117,3 +148,4 @@ if (require.main === module) {
 }
 
 export { buildServer };
+

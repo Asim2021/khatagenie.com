@@ -8,6 +8,10 @@ import { visionService } from '../services/vision';
 import fs from 'fs';
 import path from 'path';
 
+import { extractionQueue } from '../services/queue';
+import { storageService } from '../services/storage';
+import { pdfProcessor } from '../services/pdfProcessor';
+
 export async function invoiceRoutes(server: FastifyInstance) {
   // Apply auth globally to all invoice endpoints
   server.addHook('preHandler', authenticate);
@@ -220,99 +224,39 @@ export async function invoiceRoutes(server: FastifyInstance) {
         return reply.status(400).send({ error: 'FILE_REQUIRED', message: 'No file uploaded.' });
       }
 
-      const uploadsDir = path.join(process.cwd(), 'uploads');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-
-      const filename = `upload_${Date.now()}_${data.filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-      const filePath = path.join(uploadsDir, filename);
-
       const buffer = await data.toBuffer();
-      fs.writeFileSync(filePath, buffer);
+      const uploadResult = await storageService.saveFile(data.filename, buffer, data.mimetype);
+      const fullDiskPath = path.join(process.cwd(), uploadResult.fileUrl);
 
-      const relativeUrl = `/uploads/${filename}`;
+      // Process multi-page document info
+      const docInfo = await pdfProcessor.processDocument(
+        fullDiskPath,
+        data.mimetype,
+        uploadResult.fileUrl
+      );
 
       // Create invoice record
       const invoice = await prisma.invoice.create({
         data: {
           organizationId: orgId,
           senderPhone: 'DIRECT_WEB_UPLOAD',
-          fileUrl: relativeUrl,
+          fileUrl: uploadResult.fileUrl,
           fileMimeType: data.mimetype,
-          fileSizeBytes: buffer.length,
+          fileSizeBytes: uploadResult.sizeBytes,
           status: InvoiceStatus.PROCESSING,
         },
       });
 
-      // Trigger Vision AI extraction asynchronously
-      visionService
-        .extractInvoiceData(filePath, true)
-        .then(async ({ extraction, isMathValid, rawResponse }) => {
-          const supplierPan = extractPanFromGstin(extraction.supplierGstin);
-          await prisma.$transaction(async (tx) => {
-            await tx.invoice.update({
-              where: { id: invoice.id },
-              data: {
-                status: InvoiceStatus.NEEDS_REVIEW,
-                supplierName: extraction.supplierName,
-                supplierGstin: extraction.supplierGstin,
-                supplierPan,
-                supplierAddress: extraction.supplierAddress,
-                buyerGstin: extraction.buyerGstin,
-                invoiceNumber: extraction.invoiceNumber,
-                invoiceDate: extraction.invoiceDate ? new Date(extraction.invoiceDate) : null,
-                dueDate: extraction.dueDate ? new Date(extraction.dueDate) : null,
-                invoiceType: (extraction.invoiceType as any) || InvoiceType.B2B_TAX_INVOICE,
-                taxableAmount: extraction.taxableAmount,
-                cgstAmount: extraction.cgstAmount,
-                sgstAmount: extraction.sgstAmount,
-                igstAmount: extraction.igstAmount,
-                cessAmount: extraction.cessAmount,
-                roundOffAmount: extraction.roundOffAmount,
-                totalAmount: extraction.totalAmount,
-                isRcm: extraction.isReverseCharge,
-                isMathValid,
-                confidenceScore: extraction.confidenceScore,
-                rawAiResponse: rawResponse,
-              },
-            });
-
-            if (extraction.lineItems && extraction.lineItems.length > 0) {
-              await tx.invoiceItem.createMany({
-                data: extraction.lineItems.map((item) => ({
-                  invoiceId: invoice.id,
-                  description: item.description,
-                  hsnCode: item.hsnCode || null,
-                  quantity: item.quantity || null,
-                  unit: item.unit || null,
-                  unitPrice: item.unitPrice || null,
-                  taxableAmount: item.taxableAmount,
-                  gstRate: item.gstRate,
-                  cgstAmount: item.cgstAmount || null,
-                  sgstAmount: item.sgstAmount || null,
-                  igstAmount: item.igstAmount || null,
-                  totalAmount: item.totalAmount,
-                })),
-              });
-            }
-          });
-        })
-        .catch(async (err) => {
-          await prisma.invoice.update({
-            where: { id: invoice.id },
-            data: {
-              status: InvoiceStatus.EXTRACTION_FAILED,
-              errorMessage: err.message,
-            },
-          });
-        });
+      // Enqueue to background worker queue
+      extractionQueue.enqueue(invoice.id, fullDiskPath);
 
       return {
         message: 'File uploaded successfully. Extraction initiated.',
         invoiceId: invoice.id,
-        fileUrl: relativeUrl,
+        fileUrl: uploadResult.fileUrl,
+        pageCount: docInfo.pageCount,
       };
     }
   );
 }
+

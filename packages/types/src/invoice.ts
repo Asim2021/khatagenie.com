@@ -122,7 +122,10 @@ export interface InvoiceRecord {
   reviewNotes: string | null;
   exportedAt: string | null;
   tallyVoucherId: string | null;
+  pageCount?: number;
+  pageUrls?: string[];
   createdAt: string;
   updatedAt: string;
   lineItems?: InvoiceItem[];
 }
+

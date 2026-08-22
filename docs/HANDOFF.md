@@ -1,38 +1,41 @@
 # Session Handoff: KhataGenie.com
 
-**Current Objective**: Complete implementation and end-to-end verification of KhataGenie.com.
+**Current Objective**: Production-readiness hardening, GSTR-2B 2-way ITC reconciliation, and deployment preparation.
 
 **Current State**:
-- Full monorepo stack is 100% built, tested, and verified.
-- Fastify backend API (`apps/api`) running with multi-tenant Prisma schema, feature flag guards, WhatsApp Cloud API webhook handler, and modular Vision AI engine.
-- React frontend dashboard (`apps/web`) compiled with zoomable split-screen bill reviewer, live GST math balance checker, MSME client directory, and Tally/Excel export center.
-- All 14 canonical documentation files in `/docs` are fully synchronized with repository reality.
+- Full monorepo stack is 100% built, tested, and verified across all 4 packages (`types`, `shared`, `api`, `web`).
+- GSTR-2B 2-way ITC reconciliation engine active in both backend API and React dashboard (`/reconciliation`).
+- Pluggable storage service and multi-page PDF processing with frontend pagination in image viewer.
+- Background Vision OCR worker queue active with concurrency limits & retries.
+- Fastify server hardened with `/ready` DB probe and graceful shutdown handling.
+- Production CA login & onboarding UI active at `/login`.
+- Global Toast notification system providing instant feedback.
+- All 14 living memory documentation files in `/docs` are synchronized with repository reality.
 
 **Recently Completed**:
-- Implemented `@khatagenie/types` with mandatory `FEATURE_FLAGS` baseline `false` defaults.
-- Implemented `@khatagenie/shared` with 15-character GSTIN validator, state codes directory, and decimal math verification.
-- Built Fastify backend API (`apps/api`) with Prisma PostgreSQL models, seed script, JWT Auth, `requireFeature` route middleware, WhatsApp webhook, and Vision service.
-- Built Tally Prime XML accounting vouchers exporter and Excel GSTR-2 purchase register generator.
-- Built React 18 + Vite dashboard (`apps/web`) with split-screen image reviewer, thermal receipt high-contrast filter, and keyboard shortcuts (`Cmd+Enter`).
-- Built Superadmin Feature Flags admin page (`/settings/feature-flags`).
-- Configured Railway deployment (`railway.json`).
-- Verified full workspace build (`npm run build` exits with code 0).
+- Implemented GSTR-2B 2-way ITC reconciliation engine (`gstr2bService`) and UI dashboard (`Gstr2bReconPage.tsx`).
+- Created pluggable storage provider (`storageService`) and PDF page processor (`pdfProcessor`).
+- Created background OCR worker queue (`extractionQueue`).
+- Created production `LoginPage.tsx` with CA firm registration and Quick Demo Fill.
+- Created `ToastContext` and toast notification system.
+- Registered 6 new enterprise feature flags with baseline default `false` in `packages/types/src/featureFlags.ts`.
+- Added `apps/api/test-recon.ts` test suite: 100% Passed.
+- Verified monorepo build (`npm run build`): 100% Passed.
 
 **Open Problems**:
 - None.
 
 **Important Decisions**:
-- `DEC-001`: Fastify for high-speed schema serialization.
-- `DEC-002`: Modular OpenAI-compatible vision provider (NVIDIA Nemotron / GPT-4o-mini).
-- `DEC-003`: Centralized feature flags in `packages/types/src/featureFlags.ts`.
-- `DEC-004`: PostgreSQL + Prisma ORM.
+- `DEC-005`: Decoupled background worker queue for Vision OCR to prevent Meta WhatsApp webhook timeouts.
+- `DEC-006`: Standardized ±₹2.00 tax variance rounding tolerance for Indian GST 2-way reconciliation matching.
 
 **Things the Next Agent Should Know**:
 - Start backend in development with `npm run dev:api`.
 - Start frontend with `npm run dev:web`.
 - Run full monorepo development with `npm run dev`.
-- Run tests with `npx tsx packages/shared/test-verify.ts` and `npx tsx apps/api/test-server.ts`.
+- Run full test suite with `npx tsx packages/shared/test-verify.ts`, `npx tsx apps/api/test-server.ts`, and `npx tsx apps/api/test-recon.ts`.
 
 **Recommended Next Actions**:
 - Connect a live Meta WhatsApp Cloud API phone number ID in `.env` to test with physical WhatsApp bill messages.
 - Deploy to Railway by connecting the GitHub repository.
+

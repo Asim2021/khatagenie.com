@@ -4,16 +4,28 @@ import {
   ZoomOut, 
   RotateCw, 
   SunMedium, 
-  RefreshCw,
-  FileQuestion
+  RefreshCw, 
+  FileQuestion, 
+  ChevronLeft, 
+  ChevronRight 
 } from 'lucide-react';
+
 
 interface ImageViewerProps {
   src: string;
   alt?: string;
+  pageCount?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
-export const ImageViewer: React.FC<ImageViewerProps> = ({ src, alt = 'Invoice Bill Scan' }) => {
+export const ImageViewer: React.FC<ImageViewerProps> = ({ 
+  src, 
+  alt = 'Invoice Bill Scan',
+  pageCount = 1,
+  currentPage = 1,
+  onPageChange
+}) => {
   const [scale, setScale] = useState<number>(1);
   const [rotation, setRotation] = useState<number>(0);
   const [highContrast, setHighContrast] = useState<boolean>(false);
@@ -120,6 +132,29 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ src, alt = 'Invoice Bi
           </button>
         </div>
 
+        {/* Multi-Page Navigation Controls */}
+        {pageCount > 1 && (
+          <div className="flex items-center space-x-1.5 bg-slate-900/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-slate-800 shadow-xl pointer-events-auto">
+            <button
+              onClick={() => onPageChange && onPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage <= 1}
+              className="p-1 text-slate-300 hover:text-white disabled:opacity-30 rounded transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-[11px] font-mono font-semibold text-emerald-400 px-1">
+              Page {currentPage} / {pageCount}
+            </span>
+            <button
+              onClick={() => onPageChange && onPageChange(Math.min(pageCount, currentPage + 1))}
+              disabled={currentPage >= pageCount}
+              className="p-1 text-slate-300 hover:text-white disabled:opacity-30 rounded transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {highContrast && (
           <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-lg pointer-events-auto">
             Thermal Contrast Mode
@@ -172,3 +207,4 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ src, alt = 'Invoice Bi
     </div>
   );
 };
+
