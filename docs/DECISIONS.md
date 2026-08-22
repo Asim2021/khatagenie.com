@@ -68,3 +68,24 @@ This document tracks all significant architectural and technical decisions made 
 - **Selected Option**: Fuzzy normalized matching with ±₹2.00 tax variance tolerance and 4-state categorization (Matched, Tax Mismatch, Missing in Books, Missing in 2B).
 - **Reason for Selection**: Handles realistic real-world invoice number variations (e.g. `INV-001` vs `INV001`) and standard rounding adjustments while detecting missing credits.
 
+---
+
+## DEC-007: Lean Codebase Simplification & Strict YAGNI (Ponytail)
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Codebase audit identified unimported dependencies and repetitive service classes.
+- **Alternatives Considered**: Keep unused dependencies for future speculative phases vs Prune immediately.
+- **Selected Option**: Pruned 7 unused dependencies and unified WhatsApp ingestion directly under the background worker queue.
+- **Reason for Selection**: Minimizes bundle bloat, prevents webhook timeout regressions, and improves build performance.
+
+---
+
+## DEC-008: Production Security Hardening & Zero-Trust Verification
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Senior security threat model audit identified potential vulnerabilities in webhook signature handling, dev auth fallback, and file upload MIME validation.
+- **Alternatives Considered**: Document as deployment caveats vs Hard-code defenses into the application runtime.
+- **Selected Option**: Enforced runtime timing-safe HMAC-SHA256 signature verification, strict `NODE_ENV !== 'production'` auth fallback gating, environment-aware CORS whitelisting, and strict MIME type upload allowlists.
+- **Reason for Selection**: Assures zero-trust security posture and guarantees security compliance out of the box.
+
+

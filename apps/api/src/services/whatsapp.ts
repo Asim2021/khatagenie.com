@@ -34,14 +34,20 @@ export class WhatsAppService {
    * Verifies SHA-256 signature from Meta webhook headers.
    */
   public verifySignature(rawBody: string, signatureHeader?: string): boolean {
-    if (!this.appSecret || !signatureHeader) return true; // allow dev bypass if unset
+    if (!this.appSecret) {
+      // In development/test without appSecret, allow bypass; in production require secret
+      return process.env.NODE_ENV !== 'production';
+    }
+    if (!signatureHeader) return false;
     try {
-      const signature = signatureHeader.replace('sha256=', '');
+      const signature = signatureHeader.replace(/^sha256=/, '');
       const expectedSignature = crypto
         .createHmac('sha256', this.appSecret)
         .update(rawBody)
         .digest('hex');
-      return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+      const sigBuf = Buffer.from(signature, 'hex');
+      const expBuf = Buffer.from(expectedSignature, 'hex');
+      return sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf);
     } catch {
       return false;
     }

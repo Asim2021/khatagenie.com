@@ -47,7 +47,25 @@ This document tracks known issues, risks, root causes, and resolutions.
 - **Impact**: Multi-tenant data privacy violation if unauthenticated users can access internal dashboard routes.
 - **Root Cause**: Routes in `App.tsx` were not wrapped in `<ProtectedRoute>`, and `Navbar.tsx` did not check `user` before rendering private navigation items and status badges.
 - **Current Solution**: Wrapped all private routes (`/`, `/clients`, `/exports`, `/reconciliation`, `/settings/feature-flags`, `/invoices/:id/review`) in `<ProtectedRoute>`, and updated `Navbar.tsx` to conditionally render private navigation links, WhatsApp status, and admin controls ONLY when authenticated. Unauthenticated visitors are immediately redirected to `/login`.
+---
+
+## PROB-005: Webhook Signature Bypass, Permissive Dev Auth Fallback & File Upload MIME Vulnerabilities
+- **Date Discovered**: 2026-08-23
+- **Severity**: High / Critical
+- **Symptoms**: Identified via Senior Security STRIDE audit:
+  1. Meta WhatsApp webhook lacked HMAC-SHA256 signature verification in route handler.
+  2. Offline seed admin login accepted any password $\ge 6$ chars without environment gating.
+  3. Wildcard `origin: true` CORS allowed any domain reflection.
+  4. Unrestricted MIME types in `/upload` allowed non-image/non-PDF files.
+- **Impact**: Potential webhook spoofing, dev auth bypass in production outages, cross-origin request risks, and stored XSS risks.
+- **Root Cause**: Missing validation guards in route pre-handlers and permissive dev defaults left unconstrained.
+- **Current Solution**:
+  1. Added timing-safe HMAC-SHA256 signature validation in `whatsappService` and enforced 401 rejection on invalid signatures.
+  2. Gated dev seed login strictly to `NODE_ENV !== 'production'` and required exact password matching.
+  3. Configured environment-aware CORS whitelisting (`FRONTEND_URL`) and `X-Content-Type-Options: nosniff`.
+  4. Enforced strict MIME-type allowlist (`image/*` & `application/pdf`) with HTTP 415 rejection.
 - **Remaining Risk**: None.
-- **Status**: Resolved & Verified in Playwright.
+- **Status**: Resolved & Verified in `apps/api/test-server.ts`.
+
 
 

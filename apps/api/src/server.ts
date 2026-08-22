@@ -42,8 +42,13 @@ async function buildServer() {
   }
 
   // 1. Security & Core Plugins
+  const allowedOrigins =
+    env.NODE_ENV === 'production' && process.env.FRONTEND_URL
+      ? [process.env.FRONTEND_URL]
+      : true;
+
   await server.register(cors, {
-    origin: true,
+    origin: allowedOrigins,
     credentials: true,
   });
 
@@ -61,10 +66,13 @@ async function buildServer() {
     },
   });
 
-  // Serve uploaded images statically
+  // Serve uploaded images statically with nosniff and safe cache headers
   await server.register(fastifyStatic, {
     root: uploadsDir,
     prefix: '/uploads/',
+    setHeaders: (res) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    },
   });
 
   // 2. Health & Readiness check routes

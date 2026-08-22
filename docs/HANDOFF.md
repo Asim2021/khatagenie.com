@@ -13,15 +13,14 @@
 - All 14 living memory documentation files in `/docs` are synchronized with repository reality.
 
 **Recently Completed**:
+- Conducted STRIDE Threat Model & Security Audit (`senior-security`) and patched VULN-01 through VULN-04.
+- Enforced timing-safe HMAC-SHA256 signature verification in WhatsApp webhook ingestion (`VULN-01`).
+- Gated dev/seed login strictly to non-production environments with exact password match (`VULN-02`).
+- Configured environment-aware CORS origin whitelisting and `X-Content-Type-Options: nosniff` (`VULN-03`).
+- Enforced strict MIME-type allowlist on invoice uploads with HTTP 415 rejection (`VULN-04`).
 - Conducted Ponytail whole-repo audit and executed lean simplifications.
-- Removed 7 unused dependencies across `apps/web` and `apps/api`.
-- De-duplicated ~75 lines of synchronous OCR extraction in `whatsappService` by delegating directly to `extractionQueue`.
-- Streamlined `storageService`, `pdfProcessor`, `excelExporter`, and `tallyExporter` service implementations.
-- Verified monorepo build (`npm run build`) and all 3 test suites: 100% Passed.
-- Implemented GSTR-2B 2-way ITC reconciliation engine (`gstr2bService`) and UI dashboard (`Gstr2bReconPage.tsx`).
-- Created background OCR worker queue (`extractionQueue`).
-- Created production `LoginPage.tsx` with CA firm registration and Quick Demo Fill.
-- Protected all private routes with `<ProtectedRoute>` and unauth redirection.
+- Verified monorepo build (`npm run build`) and all test suites: 100% Passed.
+
 
 
 **Open Problems**:

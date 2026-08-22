@@ -406,6 +406,14 @@ export async function invoiceRoutes(server: FastifyInstance) {
     };
   });
 
+  const ALLOWED_MIME_TYPES = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'application/pdf',
+  ]);
+
   // 4. POST /api/v1/invoices/upload (Direct File Upload - Feature Flag Gated)
   server.post(
     '/upload',
@@ -416,6 +424,13 @@ export async function invoiceRoutes(server: FastifyInstance) {
 
       if (!data) {
         return reply.status(400).send({ error: 'FILE_REQUIRED', message: 'No file uploaded.' });
+      }
+
+      if (!ALLOWED_MIME_TYPES.has(data.mimetype)) {
+        return reply.status(415).send({
+          error: 'UNSUPPORTED_MEDIA_TYPE',
+          message: 'Only JPEG, PNG, WebP, HEIC images and PDF documents are allowed for invoice processing.',
+        });
       }
 
       const buffer = await data.toBuffer();

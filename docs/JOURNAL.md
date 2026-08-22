@@ -60,16 +60,23 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
   - Removed 7 unused dependencies (`@tanstack/react-query`, `react-hook-form`, `tailwind-merge`, `clsx`, `zod` in web; `fastify-plugin`, `pino` in api).
   - De-duplicated ~75 lines in `whatsappService` by delegating directly to `extractionQueue`.
   - Streamlined `storageService`, `pdfProcessor`, `excelExporter`, and `tallyExporter` class wrappers.
-- Verified monorepo build and all 3 test suites: 100% Passed.
+- Conducted STRIDE Threat Model & Security Audit (`senior-security`):
+  - Enforced timing-safe HMAC-SHA256 signature verification on Meta WhatsApp webhook (`VULN-01`).
+  - Gated dev seed login fallback strictly to non-production environments with exact password match (`VULN-02`).
+  - Whitelisted CORS origins in production and added `X-Content-Type-Options: nosniff` header (`VULN-03`).
+  - Enforced strict MIME-type allowlist on invoice uploads with HTTP 415 rejection (`VULN-04`).
+  - Added security regression assertions to `test-server.ts`: 100% Passed.
 
 ### Problems
 - `PROB-003`: Prisma DB connection error during offline testing gracefully mitigated with resilient fallback mock records in reconciliation service and default-deny tier fallback in featureGuard.
 - `PROB-004`: Unauthenticated visitors could previously see internal navigation and access client routes. Resolved by wrapping routes in `ProtectedRoute.tsx` and hiding header links when logged out.
+- `PROB-005`: Resolved WhatsApp webhook signature bypass, dev auth fallback, and file upload MIME vulnerabilities identified during security audit.
 
 ### Decisions
 - `DEC-005`: Built decoupled background worker queue for Vision OCR to prevent Meta WhatsApp webhook timeouts.
 - `DEC-006`: Standardized ±₹2.00 tax variance rounding tolerance for Indian GST 2-way reconciliation matching.
 - `DEC-007`: Adopted Ponytail YAGNI principle to eliminate unused dependencies and redundant service wrapper layers.
+- `DEC-008`: Enforced production security hardening and zero-trust verification across all API ingress routes.
 
 ### Next Actions
 - Connect live Meta WhatsApp Cloud API credentials in `.env` for production phone testing.

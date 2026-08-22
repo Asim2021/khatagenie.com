@@ -59,8 +59,12 @@ export async function authRoutes(server: FastifyInstance) {
       console.warn(`[Auth] Database notice (${err.message}). Checking seed credentials.`);
     }
 
-    // Developer / Offline Seed Admin Fallback
-    if (email === 'admin@khatagenie.com' && (password === 'KhataGenie#2026' || password.length >= 6)) {
+    // Developer / Offline Seed Admin Fallback (Non-Production Only)
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      email === 'admin@khatagenie.com' &&
+      password === 'KhataGenie#2026'
+    ) {
       const token = server.jwt.sign(
         {
           userId: 'usr_admin_01',

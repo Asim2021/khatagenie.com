@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.2] - 2026-08-23
+
+### Security
+- **Meta WhatsApp Webhook Verification**: Enforced timing-safe HMAC-SHA256 signature verification in `whatsappRoutes` and `whatsappService`, returning HTTP 401 on spoofed payloads.
+- **Authentication Hardening**: Gated dev/seed admin login strictly to `NODE_ENV !== 'production'` and required exact password check.
+- **Environment-Aware CORS Whitelisting**: Restricted origin reflection to configured `FRONTEND_URL` in production.
+- **File Upload Protection**: Enforced strict MIME-type allowlist (`image/jpeg`, `image/png`, `image/webp`, `image/heic`, `application/pdf`) with HTTP 415 rejections for prohibited files.
+- **Secure Static Headers**: Injected `X-Content-Type-Options: nosniff` onto static upload serving.
+
 ## [0.2.1] - 2026-08-23
 
 ### Changed

@@ -27,6 +27,17 @@ export async function whatsappRoutes(server: FastifyInstance) {
   // 2. POST /api/v1/whatsapp/webhook (Meta Incoming Event Receiver)
   server.post('/webhook', async (request, reply) => {
     const signature = request.headers['x-hub-signature-256'] as string | undefined;
+    const rawBody = typeof request.body === 'string' ? request.body : JSON.stringify(request.body || {});
+
+    // Validate HMAC-SHA256 signature
+    const isValid = whatsappService.verifySignature(rawBody, signature);
+    if (!isValid) {
+      return reply.status(401).send({
+        error: 'INVALID_SIGNATURE',
+        message: 'Meta webhook HMAC-SHA256 signature verification failed.',
+      });
+    }
+
     const body = request.body as any;
 
     // Acknowledge receipt immediately to Meta to prevent timeout retries

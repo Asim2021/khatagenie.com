@@ -108,7 +108,34 @@ async function testFastifyApi() {
     throw new Error('Excel generation failed');
   }
 
-  console.log('✅ ALL FASTIFY API, EXPORTER, AND WEBHOOK TESTS PASSED!');
+  // Test 6: Security - Seed Admin Authentication Hardening Check
+  const invalidLoginRes = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/login',
+    payload: {
+      email: 'admin@khatagenie.com',
+      password: 'wrong_password_123',
+    },
+  });
+  console.log(`[Test 6] Security: Invalid password rejected with status=${invalidLoginRes.statusCode}`);
+  if (invalidLoginRes.statusCode !== 401) {
+    throw new Error('Security check failed: Invalid password was not rejected!');
+  }
+
+  const validLoginRes = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/login',
+    payload: {
+      email: 'admin@khatagenie.com',
+      password: 'KhataGenie#2026',
+    },
+  });
+  console.log(`[Test 7] Security: Valid password accepted with status=${validLoginRes.statusCode}`);
+  if (validLoginRes.statusCode !== 200) {
+    throw new Error('Valid login failed!');
+  }
+
+  console.log('✅ ALL FASTIFY API, EXPORTER, AND SECURITY TESTS PASSED!');
   await app.close();
 }
 
