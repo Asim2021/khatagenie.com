@@ -1,0 +1,171 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPERADMIN
+  CA_ADMIN
+  CA_STAFF
+}
+
+enum InvoiceStatus {
+  RECEIVED
+  PROCESSING
+  EXTRACTION_FAILED
+  NEEDS_REVIEW
+  APPROVED
+  REJECTED
+  EXPORTED
+}
+
+enum InvoiceType {
+  B2B_TAX_INVOICE
+  B2C_RETAIL_INVOICE
+  BILL_OF_SUPPLY
+  EXPENSE_VOUCHER
+  DEBIT_NOTE
+  CREDIT_NOTE
+}
+
+model Organization {
+  id                String    @id @default(uuid())
+  name              String    // e.g. "Bansal & Associates CA"
+  firmGstin         String?
+  phone             String
+  email             String    @unique
+  address           String?
+  subscriptionTier  String    @default("free") // free, pro, enterprise
+  featureOverrides  Json?     // Map of feature flag overrides: Record<string, boolean>
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  users             User[]
+  clients           Client[]
+  invoices          Invoice[]
+
+  @@map("organizations")
+}
+
+model User {
+  id                String        @id @default(uuid())
+  organizationId    String
+  email             String        @unique
+  passwordHash      String
+  fullName          String
+  role              Role          @default(CA_STAFF)
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reviewedInvoices  Invoice[]     @relation("ReviewedByUser")
+
+  @@map("users")
+}
+
+model Client {
+  id                String        @id @default(uuid())
+  organizationId    String
+  businessName      String        // e.g. "Aggarwal Traders"
+  tradeName         String?
+  gstin             String?
+  pan               String?
+  contactPerson     String?
+  whatsappPhone     String        // e.g. "919811000000" (international format without +)
+  tallyLedgerName   String?       // Default purchase ledger name in Tally
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices          Invoice[]
+
+  @@unique([organizationId, whatsappPhone])
+  @@map("clients")
+}
+
+model Invoice {
+  id                String         @id @default(uuid())
+  organizationId    String
+  clientId          String?        // Nullable if received from unmapped WhatsApp sender
+  senderPhone       String         // Raw sender phone number from WhatsApp
+  whatsappMessageId String?        @unique
+  
+  // Storage
+  fileUrl           String         // URL or relative path for the receipt image/PDF
+  fileMimeType      String         @default("image/jpeg")
+  fileSizeBytes     Int            @default(0)
+  
+  // Processing Pipeline
+  status            InvoiceStatus  @default(RECEIVED)
+  rawAiResponse     Json?          // Complete raw JSON response from vision model
+  confidenceScore   Float?         // 0.0 to 1.0 extraction confidence
+  errorMessage      String?
+
+  // Extracted Invoice Metadata
+  invoiceType       InvoiceType    @default(B2B_TAX_INVOICE)
+  invoiceNumber     String?
+  invoiceDate       DateTime?
+  dueDate           DateTime?
+  supplierName      String?
+  supplierGstin     String?
+  supplierPan       String?
+  supplierAddress   String?
+  buyerGstin        String?
+  
+  // Financial Totals (INR)
+  taxableAmount     Decimal?       @db.Decimal(12, 2)
+  cgstAmount        Decimal?       @db.Decimal(12, 2)
+  sgstAmount        Decimal?       @db.Decimal(12, 2)
+  igstAmount        Decimal?       @db.Decimal(12, 2)
+  cessAmount        Decimal?       @db.Decimal(12, 2)
+  roundOffAmount    Decimal?       @db.Decimal(8, 2)
+  totalAmount       Decimal?       @db.Decimal(12, 2)
+  isRcm             Boolean        @default(false) // Reverse Charge Mechanism
+  
+  // Review & Export Audit
+  isMathValid       Boolean        @default(false)
+  reviewedById      String?
+  reviewedAt        DateTime?
+  reviewNotes       String?
+  exportedAt        DateTime?
+  tallyVoucherId    String?
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  organization      Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client            Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  reviewedBy        User?          @relation("ReviewedByUser", fields: [reviewedById], references: [id], onDelete: SetNull)
+  lineItems         InvoiceItem[]
+
+  @@index([organizationId, status])
+  @@index([senderPhone])
+  @@index([invoiceDate])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id                String    @id @default(uuid())
+  invoiceId         String
+  description       String
+  hsnCode           String?
+  quantity          Decimal?  @db.Decimal(10, 3)
+  unit              String?   // e.g. PCS, KGS, BOX
+  unitPrice         Decimal?  @db.Decimal(12, 2)
+  taxableAmount     Decimal   @db.Decimal(12, 2)
+  gstRate           Decimal   @db.Decimal(5, 2) // e.g. 18.00 (percentage)
+  cgstAmount        Decimal?  @db.Decimal(12, 2)
+  sgstAmount        Decimal?  @db.Decimal(12, 2)
+  igstAmount        Decimal?  @db.Decimal(12, 2)
+  totalAmount       Decimal   @db.Decimal(12, 2)
+
+  invoice           Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_items")
+}

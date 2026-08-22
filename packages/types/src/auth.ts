@@ -17,6 +17,7 @@ export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 export interface AuthUser {
   id: string;
   organizationId: string;
+  organizationName?: string;
   email: string;
   fullName: string;
   role: UserRole;
