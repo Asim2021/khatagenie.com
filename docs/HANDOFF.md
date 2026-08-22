@@ -1,32 +1,30 @@
 # Session Handoff: KhataGenie.com
 
-**Current Objective**: Production-Grade Light & Dark Mode System, Zero-FOUC, and 100% Mobile Responsiveness.
+**Current Objective**: TanStack Query (v5) Client Caching, Fast-Fail DB Resilience, and Branded Split-Screen Auth Layout.
 
 **Current State**:
 - Full monorepo stack is 100% built, tested, and verified across all 4 packages (`types`, `shared`, `api`, `web`).
-- Phase 9 fully implemented: Zero-FOUC inline head script, React `ThemeContext`, `ThemeToggle` (desktop & mobile variants), 100% mobile responsive navigation drawer, and mobile split-screen switcher.
-- GSTR-2B 2-way ITC reconciliation engine active in both backend API and React dashboard (`/reconciliation`).
-- Pluggable storage service and multi-page PDF processing with frontend pagination in image viewer.
-- Background Vision OCR worker queue active with concurrency limits & retries.
-- Fastify server hardened with `/ready` DB probe and graceful shutdown handling.
-- Production CA login & onboarding UI active at `/login`.
-- Global Toast notification system providing instant feedback.
+- Phase 10 fully implemented: `@tanstack/react-query` v5 caching integrated across all React dashboard pages (`InboxPage`, `Gstr2bReconPage`, `ClientsPage`, `InvoiceReviewPage`).
+- Fast-fail DB connection availability probe with 15s TTL caching added in `apps/api/src/lib/prisma.ts`.
+- `AppLayout` in `apps/web/src/App.tsx` isolates `/login` route, removing the global `<Navbar />` on the auth page.
+- `LoginPage.tsx` upgraded to a dual-column branded layout featuring KhataGenie's brand identity, tagline, 3 core value cards, Section 43B(h) compliance badges, and firm registration form.
+- Full light/dark mode theming, Zero-FOUC head script, and mobile navigation active.
 - All 14 living memory documentation files in `/docs` are synchronized with repository reality.
 
 **Recently Completed**:
-- Injected critical synchronous theme detection `<script>` in `<head>` of `index.html` preventing 100% of white flash on refresh (Zero-FOUC).
-- Built `ThemeContext.tsx` with Light, Dark, and System modes, `localStorage` caching, OS `matchMedia` listeners, and cross-tab synchronization.
-- Created `ThemeToggle.tsx` with Sun, Moon, and Monitor options.
-- Made `Navbar.tsx` 100% mobile-friendly with an accessible collapsible drawer, segmented theme switcher, and touch target optimization (min 44px).
-- Added mobile Document Scan vs Extracted Form view toggle in `InvoiceReviewPage.tsx`.
-- Handcrafted high-contrast light mode and sleek dark mode across all 7 pages.
-- Verified full monorepo build (`npm run build`) and all test suites: 100% Passed.
+- Integrated `@tanstack/react-query` with standard 5-minute `staleTime`, 30-minute `gcTime`, and query deduplication.
+- Refactored `Gstr2bReconPage`, `InboxPage`, `ClientsPage`, and `InvoiceReviewPage` to use `useQuery` and `useMutation` with automatic cache invalidation.
+- Created `queryClient.ts` and wrapped `App.tsx` in `<QueryClientProvider>`.
+- Replaced the standalone login card with a full-bleed split-screen branded layout with theme toggle.
+- Added fast DB availability caching to avoid socket hang when running locally against a remote/offline database.
+- Verified monorepo build (`npm run build`) and integration test suites: 100% Passed.
 
 **Open Problems**:
 - None (`PROB-001` through `PROB-006` resolved and tested).
 
 **Important Decisions**:
 - `DEC-009`: Synchronous inline head script for zero-FOUC theming, Tailwind class strategy, and mobile-first split-screen tab switcher.
+- `DEC-010`: TanStack Query (v5) client caching architecture and dedicated branded auth layout.
 
 **Things the Next Agent Should Know**:
 - Start backend in development with `npm run dev:api`.
@@ -37,5 +35,3 @@
 **Recommended Next Actions**:
 - Connect a live Meta WhatsApp Cloud API phone number ID in `.env` to test with physical WhatsApp bill messages.
 - Deploy to Railway by connecting the GitHub repository.
-
-

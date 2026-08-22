@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Users, 
   Plus, 
   Building2, 
   MessageSquare, 
   Search,
-  X
+  X 
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
 import { useToast } from '../context/ToastContext';
 
 export const ClientsPage: React.FC = () => {
   const { showToast } = useToast();
-  const [clients, setClients] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // New Client Form
   const [businessName, setBusinessName] = useState<string>('');
@@ -24,71 +24,64 @@ export const ClientsPage: React.FC = () => {
   const [whatsappPhone, setWhatsappPhone] = useState<string>('');
   const [tallyLedgerName, setTallyLedgerName] = useState<string>('');
 
-  useEffect(() => {
-    loadClients();
-  }, []);
+  // 1. TanStack Query caching for Clients List
+  const { data: clients = [], isLoading } = useQuery<any[]>({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      try {
+        const data = await fetchApi<any[]>('/clients');
+        return data || [];
+      } catch (err) {
+        console.warn('Using mock clients:', err);
+        return [
+          {
+            id: 'c1',
+            businessName: 'Aggarwal Traders',
+            tradeName: 'Aggarwal Wholesale Hub',
+            gstin: '07AABCA1111A1Z0',
+            pan: 'AABCA1111A',
+            whatsappPhone: '919811223344',
+            tallyLedgerName: 'Aggarwal Traders - Purchase A/c',
+            isActive: true,
+            _count: { invoices: 14 },
+          },
+          {
+            id: 'c2',
+            businessName: 'Sharma Electronics & Appliances',
+            tradeName: 'Sharma Digital Store',
+            gstin: '07BBCDE2222B1Z8',
+            pan: 'BBCDE2222B',
+            whatsappPhone: '919877665544',
+            tallyLedgerName: 'Sharma Electronics - Purchase A/c',
+            isActive: true,
+            _count: { invoices: 8 },
+          },
+          {
+            id: 'c3',
+            businessName: 'Gupta Auto Components',
+            tradeName: 'Gupta Motors Delhi',
+            gstin: '07CCDEF3333C1Z6',
+            pan: 'CCDEF3333C',
+            whatsappPhone: '919899112233',
+            tallyLedgerName: 'Gupta Auto - Raw Material A/c',
+            isActive: true,
+            _count: { invoices: 5 },
+          },
+        ];
+      }
+    },
+  });
 
-  const loadClients = async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetchApi<any[]>('/clients');
-      setClients(data || []);
-    } catch (err) {
-      console.warn('Using mock clients:', err);
-      setClients([
-        {
-          id: 'c1',
-          businessName: 'Aggarwal Traders',
-          tradeName: 'Aggarwal Wholesale Hub',
-          gstin: '07AABCA1111A1Z0',
-          pan: 'AABCA1111A',
-          whatsappPhone: '919811223344',
-          tallyLedgerName: 'Aggarwal Traders - Purchase A/c',
-          isActive: true,
-          _count: { invoices: 14 },
-        },
-        {
-          id: 'c2',
-          businessName: 'Sharma Electronics & Appliances',
-          tradeName: 'Sharma Digital Store',
-          gstin: '07BBCDE2222B1Z8',
-          pan: 'BBCDE2222B',
-          whatsappPhone: '919877665544',
-          tallyLedgerName: 'Sharma Electronics - Purchase A/c',
-          isActive: true,
-          _count: { invoices: 8 },
-        },
-        {
-          id: 'c3',
-          businessName: 'Gupta Auto Components',
-          tradeName: 'Gupta Motors Delhi',
-          gstin: '07CCDEF3333C1Z6',
-          pan: 'CCDEF3333C',
-          whatsappPhone: '919899112233',
-          tallyLedgerName: 'Gupta Auto - Raw Material A/c',
-          isActive: true,
-          _count: { invoices: 5 },
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCreateClient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await fetchApi('/clients', {
+  // 2. Add Client Mutation
+  const addClientMutation = useMutation({
+    mutationFn: async (clientPayload: any) => {
+      return await fetchApi('/clients', {
         method: 'POST',
-        body: JSON.stringify({
-          businessName,
-          tradeName,
-          gstin: gstin.toUpperCase(),
-          whatsappPhone,
-          tallyLedgerName: tallyLedgerName || `${businessName} - Purchase A/c`,
-        }),
+        body: JSON.stringify(clientPayload),
       });
-
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       setShowAddModal(false);
       setBusinessName('');
       setTradeName('');
@@ -96,10 +89,21 @@ export const ClientsPage: React.FC = () => {
       setWhatsappPhone('');
       setTallyLedgerName('');
       showToast(`MSME Client ${businessName} registered successfully!`, 'success');
-      loadClients();
-    } catch (err: any) {
+    },
+    onError: (err: any) => {
       showToast(`Failed to add client: ${err.message}`, 'error');
-    }
+    },
+  });
+
+  const handleCreateClient = (e: React.FormEvent) => {
+    e.preventDefault();
+    addClientMutation.mutate({
+      businessName,
+      tradeName,
+      gstin: gstin.toUpperCase(),
+      whatsappPhone,
+      tallyLedgerName: tallyLedgerName || `${businessName} - Purchase A/c`,
+    });
   };
 
   const filteredClients = clients.filter(
@@ -148,7 +152,7 @@ export const ClientsPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {isLoading ? (
           <div className="col-span-full py-12 text-center text-slate-500 dark:text-slate-400 text-xs">
-            Loading MSME clients...
+            Loading cached MSME clients...
           </div>
         ) : filteredClients.length === 0 ? (
           <div className="col-span-full py-12 text-center text-slate-500 dark:text-slate-400 space-y-2">
@@ -311,9 +315,10 @@ export const ClientsPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition-colors shadow-lg shadow-emerald-500/20"
+                  disabled={addClientMutation.isPending}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50"
                 >
-                  Save MSME Client
+                  {addClientMutation.isPending ? 'Saving...' : 'Save MSME Client'}
                 </button>
               </div>
             </form>

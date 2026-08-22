@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   FileSpreadsheet
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ImageViewer } from '../components/ImageViewer';
 import { fetchApi } from '../lib/api';
 import { validateGstin, getStateFromGstin, verifyInvoiceMath } from '@khatagenie/shared';
@@ -21,11 +22,8 @@ export const InvoiceReviewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
-  const [invoice, setInvoice] = useState<any>(null);
-  const [clients, setClients] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [mobileActiveView, setMobileActiveView] = useState<'scan' | 'form'>('form');
 
   // Form State
@@ -44,82 +42,81 @@ export const InvoiceReviewPage: React.FC = () => {
   const [reviewNotes, setReviewNotes] = useState<string>('');
   const [lineItems, setLineItems] = useState<any[]>([]);
 
+  // 1. TanStack Query for Invoice Data
+  const { data: invoice, isLoading } = useQuery({
+    queryKey: ['invoice', id],
+    queryFn: async () => {
+      try {
+        return await fetchApi<any>(`/invoices/${id}`);
+      } catch (err) {
+        console.warn('Fallback mock invoice for split screen preview:', err);
+        return {
+          id: id || 'inv-delhi-01',
+          senderPhone: '919877665544',
+          fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1200',
+          status: 'NEEDS_REVIEW',
+          invoiceNumber: 'DEL-HGN-4412',
+          invoiceDate: '2026-08-20',
+          supplierName: 'Cybertronics Hardware Gurgaon',
+          supplierGstin: '06EEEFF5555E1Z9',
+          taxableAmount: 25000.0,
+          cgstAmount: 0,
+          sgstAmount: 0,
+          igstAmount: 4500.0,
+          totalAmount: 29500.0,
+          confidenceScore: 0.91,
+          lineItems: [
+            {
+              description: 'Industrial Heavy Duty Inverter 5kVA',
+              hsnCode: '8504',
+              quantity: 1,
+              unit: 'PCS',
+              unitPrice: 25000.0,
+              taxableAmount: 25000.0,
+              gstRate: 18.0,
+              cgstAmount: 0,
+              sgstAmount: 0,
+              igstAmount: 4500.0,
+              totalAmount: 29500.0,
+            },
+          ],
+        };
+      }
+    },
+  });
+
+  // 2. TanStack Query for MSME Clients
+  const { data: clients = [] } = useQuery<any[]>({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      try {
+        const data = await fetchApi<any[]>('/clients');
+        return data || [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  // Populate local form state when query data loads
   useEffect(() => {
-    loadData();
-  }, [id]);
-
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      const [invRes, clientsRes] = await Promise.all([
-        fetchApi<any>(`/invoices/${id}`),
-        fetchApi<any[]>('/clients'),
-      ]);
-
-      setInvoice(invRes);
-      setClients(clientsRes || []);
-
-      // Populate form
-      setSupplierName(invRes.supplierName || '');
-      setSupplierGstin(invRes.supplierGstin || '');
-      setInvoiceNumber(invRes.invoiceNumber || '');
-      setInvoiceDate(invRes.invoiceDate ? new Date(invRes.invoiceDate).toISOString().split('T')[0] : '');
-      setInvoiceType(invRes.invoiceType || 'B2B_TAX_INVOICE');
-      setClientId(invRes.clientId || '');
-      setTaxableAmount(Number(invRes.taxableAmount || 0));
-      setCgstAmount(Number(invRes.cgstAmount || 0));
-      setSgstAmount(Number(invRes.sgstAmount || 0));
-      setIgstAmount(Number(invRes.igstAmount || 0));
-      setRoundOffAmount(Number(invRes.roundOffAmount || 0));
-      setTotalAmount(Number(invRes.totalAmount || 0));
-      setReviewNotes(invRes.reviewNotes || '');
-      setLineItems(invRes.lineItems || []);
-    } catch (err) {
-      console.warn('Fallback mock invoice for split screen preview:', err);
-      const mockInv = {
-        id: id || 'inv-delhi-01',
-        senderPhone: '919877665544',
-        fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1200',
-        status: 'NEEDS_REVIEW',
-        invoiceNumber: 'DEL-HGN-4412',
-        invoiceDate: '2026-08-20',
-        supplierName: 'Cybertronics Hardware Gurgaon',
-        supplierGstin: '06EEEFF5555E1Z9',
-        taxableAmount: 25000.0,
-        cgstAmount: 0,
-        sgstAmount: 0,
-        igstAmount: 4500.0,
-        totalAmount: 29500.0,
-        confidenceScore: 0.91,
-        lineItems: [
-          {
-            description: 'Industrial Heavy Duty Inverter 5kVA',
-            hsnCode: '8504',
-            quantity: 1,
-            unit: 'PCS',
-            unitPrice: 25000.0,
-            taxableAmount: 25000.0,
-            gstRate: 18.0,
-            cgstAmount: 0,
-            sgstAmount: 0,
-            igstAmount: 4500.0,
-            totalAmount: 29500.0,
-          },
-        ],
-      };
-      setInvoice(mockInv);
-      setSupplierName(mockInv.supplierName);
-      setSupplierGstin(mockInv.supplierGstin);
-      setInvoiceNumber(mockInv.invoiceNumber);
-      setInvoiceDate(mockInv.invoiceDate);
-      setTaxableAmount(mockInv.taxableAmount);
-      setIgstAmount(mockInv.igstAmount);
-      setTotalAmount(mockInv.totalAmount);
-      setLineItems(mockInv.lineItems);
-    } finally {
-      setIsLoading(false);
+    if (invoice) {
+      setSupplierName(invoice.supplierName || '');
+      setSupplierGstin(invoice.supplierGstin || '');
+      setInvoiceNumber(invoice.invoiceNumber || '');
+      setInvoiceDate(invoice.invoiceDate ? new Date(invoice.invoiceDate).toISOString().split('T')[0] : '');
+      setInvoiceType(invoice.invoiceType || 'B2B_TAX_INVOICE');
+      setClientId(invoice.clientId || '');
+      setTaxableAmount(Number(invoice.taxableAmount || 0));
+      setCgstAmount(Number(invoice.cgstAmount || 0));
+      setSgstAmount(Number(invoice.sgstAmount || 0));
+      setIgstAmount(Number(invoice.igstAmount || 0));
+      setRoundOffAmount(Number(invoice.roundOffAmount || 0));
+      setTotalAmount(Number(invoice.totalAmount || 0));
+      setReviewNotes(invoice.reviewNotes || '');
+      setLineItems(invoice.lineItems || []);
     }
-  };
+  }, [invoice]);
 
   // Live Math Parity Check
   const mathCheck = verifyInvoiceMath({
@@ -134,22 +131,10 @@ export const InvoiceReviewPage: React.FC = () => {
   const isGstinValid = validateGstin(supplierGstin);
   const supplierState = getStateFromGstin(supplierGstin);
 
-  // Keyboard Shortcuts (Cmd/Ctrl + Enter to Approve)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
-        handleApprove();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [supplierName, supplierGstin, taxableAmount, cgstAmount, sgstAmount, igstAmount, totalAmount, clientId]);
-
-  const handleSave = async (status: InvoiceStatus) => {
-    setIsSaving(true);
-    try {
-      await fetchApi(`/invoices/${id}`, {
+  // 3. Save / Approve Mutation
+  const saveMutation = useMutation({
+    mutationFn: async (status: InvoiceStatus) => {
+      return await fetchApi(`/invoices/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           supplierName,
@@ -169,6 +154,11 @@ export const InvoiceReviewPage: React.FC = () => {
           lineItems,
         }),
       });
+    },
+    onSuccess: (_, status) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice', id] });
 
       showToast(
         status === InvoiceStatus.APPROVED
@@ -178,15 +168,26 @@ export const InvoiceReviewPage: React.FC = () => {
       );
 
       navigate('/');
-    } catch (err: any) {
+    },
+    onError: (err: any) => {
       showToast(`Save failed: ${err.message}`, 'error');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    },
+  });
 
-  const handleApprove = () => handleSave(InvoiceStatus.APPROVED);
-  const handleReject = () => handleSave(InvoiceStatus.REJECTED);
+  // Keyboard Shortcuts (Cmd/Ctrl + Enter to Approve)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        saveMutation.mutate(InvoiceStatus.APPROVED);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [supplierName, supplierGstin, taxableAmount, cgstAmount, sgstAmount, igstAmount, totalAmount, clientId, saveMutation]);
+
+  const handleApprove = () => saveMutation.mutate(InvoiceStatus.APPROVED);
+  const handleReject = () => saveMutation.mutate(InvoiceStatus.REJECTED);
 
   if (isLoading) {
     return (
@@ -252,8 +253,8 @@ export const InvoiceReviewPage: React.FC = () => {
         <div className="flex items-center space-x-2 sm:space-x-3 ml-auto">
           <button
             onClick={handleReject}
-            disabled={isSaving}
-            className="flex items-center space-x-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold transition-colors"
+            disabled={saveMutation.isPending}
+            className="flex items-center space-x-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold transition-colors disabled:opacity-50"
           >
             <XCircle className="w-3.5 h-3.5" />
             <span className="hidden xs:inline">Reject</span>
@@ -261,12 +262,12 @@ export const InvoiceReviewPage: React.FC = () => {
 
           <button
             onClick={handleApprove}
-            disabled={isSaving}
+            disabled={saveMutation.isPending}
             title="Shortkey: Ctrl+Enter or Cmd+Enter"
-            className="flex items-center space-x-1.5 sm:space-x-2 px-3.5 sm:px-5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold transition-all shadow-lg shadow-emerald-500/20"
+            className="flex items-center space-x-1.5 sm:space-x-2 px-3.5 sm:px-5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
           >
             <CheckCircle className="w-4 h-4 stroke-[2.5]" />
-            <span>{isSaving ? 'Approving...' : 'Approve & Sync'}</span>
+            <span>{saveMutation.isPending ? 'Approving...' : 'Approve & Sync'}</span>
             <kbd className="hidden md:inline text-[9px] bg-slate-950/20 text-slate-950 font-mono px-1.5 py-0.5 rounded font-bold">
               ⌘ ↵
             </kbd>

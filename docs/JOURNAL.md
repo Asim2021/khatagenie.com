@@ -83,17 +83,22 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
 - `PROB-005`: Resolved WhatsApp webhook signature bypass, dev auth fallback, and file upload MIME vulnerabilities identified during security audit.
 - `PROB-006`: White splash on page refresh resolved with zero-FOUC synchronous head script and anti-flicker CSS.
 
+- Implemented Phase 10: TanStack Query v5 Caching, Fast-Fail DB Resilience, and Branded Split-Screen Auth:
+  - Added `@tanstack/react-query` (v5) across `apps/web` with 5-minute `staleTime`, 30-minute `gcTime`, and query deduplication.
+  - Refactored `Gstr2bReconPage`, `InboxPage`, `ClientsPage`, and `InvoiceReviewPage` to use declarative `useQuery` hooks and `useMutation` with automatic query cache invalidation on uploads and approvals.
+  - Implemented fast-fail DB availability check with TTL caching in `apps/api/src/lib/prisma.ts` to prevent socket timeout blocking in offline/remote modes.
+  - Isolated `/login` from the global `<Navbar />` by routing through `AppLayout`, eliminating redundant "Sign In" header buttons on the login page.
+  - Redesigned `LoginPage.tsx` into a high-end dual-column layout with brand storytelling, tagline, 3 core value cards (WhatsApp OCR, GSTR-2B Recon, Tally Export), and compliance badges.
+  - Verified full monorepo build (`npm run build`) and test suites: 100% Passed.
+
 ### Decisions
 - `DEC-005`: Built decoupled background worker queue for Vision OCR to prevent Meta WhatsApp webhook timeouts.
 - `DEC-006`: Standardized ±₹2.00 tax variance rounding tolerance for Indian GST 2-way reconciliation matching.
 - `DEC-007`: Adopted Ponytail YAGNI principle to eliminate unused dependencies and redundant service wrapper layers.
 - `DEC-008`: Enforced production security hardening and zero-trust verification across all API ingress routes.
 - `DEC-009`: Built zero-FOUC synchronous head script, class-based theming, and mobile-first split-screen review architecture.
+- `DEC-010`: Built TanStack Query (v5) client caching architecture and dedicated branded auth layout.
 
 ### Next Actions
 - Connect live Meta WhatsApp Cloud API credentials in `.env` for production phone testing.
 - Deploy to Railway production environment.
-
-
-
-

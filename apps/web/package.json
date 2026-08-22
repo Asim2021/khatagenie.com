@@ -11,6 +11,7 @@
   "dependencies": {
     "@khatagenie/shared": "*",
     "@khatagenie/types": "*",
+    "@tanstack/react-query": "^5.102.0",
     "lucide-react": "^0.379.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

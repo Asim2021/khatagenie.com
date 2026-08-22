@@ -92,5 +92,15 @@ This document tracks all significant architectural and technical decisions made 
 - **Trade-offs**: Requires dark mode class coverage across all UI cards, tables, badges, and modals.
 - **Risks**: None; verified across all pages.
 
+---
 
+## DEC-010: TanStack Query (v5) Client Caching & Dedicated Branded Auth Layout
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Route navigation was triggering repetitive un-cached network requests (`useEffect` + `useState`), and React 18 `StrictMode` triggered dual fetches on mount. Additionally, the global `<Navbar />` rendered unconditionally on `/login`, displaying a redundant "Sign In" button on the login screen itself.
+- **Alternatives Considered**: Retain manual `useEffect` fetching, Custom in-memory context cache, Full `@tanstack/react-query` v5 integration + dedicated auth layout.
+- **Selected Option**: Adopted `@tanstack/react-query` (v5) with standard caching policies (`staleTime: 5m`, `gcTime: 30m`), automatic query deduplication, declarative cache invalidation across mutations, and restructured `App.tsx` layout to isolate `/login` with a full-bleed branded split-screen showcase.
+- **Reason for Selection**: Eliminates route transition latency (data renders instantly from cache), drops duplicate StrictMode requests, auto-syncs UI states across mutations, and transforms `/login` into a high-converting CA value showcase.
+- **Trade-offs**: Adds `@tanstack/react-query` dependency to `apps/web`.
+- **Risks**: None; verified with full build and test suites.
 

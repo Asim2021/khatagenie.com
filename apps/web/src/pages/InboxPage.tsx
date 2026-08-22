@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FileText, 
@@ -14,132 +14,151 @@ import {
   Building2,
   Check
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
 import { FeatureGate } from '../components/FeatureGate';
 import { FEATURE_FLAGS } from '@khatagenie/types';
+import { useToast } from '../context/ToastContext';
 
 export const InboxPage: React.FC = () => {
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<string>('NEEDS_REVIEW');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    loadInvoices();
-  }, [activeTab, searchQuery]);
+  // 1. TanStack Query for Cached Invoices & Counts
+  const { data, isLoading } = useQuery<{ invoices: any[]; counts: Record<string, number> }>({
+    queryKey: ['invoices', activeTab, searchQuery],
+    queryFn: async () => {
+      try {
+        const statusParam = activeTab === 'ALL' ? '' : `&status=${activeTab}`;
+        const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
+        return await fetchApi<{ invoices: any[]; counts: Record<string, number> }>(
+          `/invoices?limit=50${statusParam}${searchParam}`
+        );
+      } catch (err) {
+        console.warn('Using mock sample data for offline preview:', err);
+        const mockData = [
+          {
+            id: 'inv-delhi-01',
+            senderPhone: '919877665544',
+            fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1000',
+            status: 'NEEDS_REVIEW',
+            invoiceNumber: 'DEL-HGN-4412',
+            invoiceDate: '2026-08-20',
+            supplierName: 'Cybertronics Hardware Gurgaon',
+            supplierGstin: '06EEEFF5555E1Z9',
+            taxableAmount: 25000.0,
+            cgstAmount: 0,
+            sgstAmount: 0,
+            igstAmount: 4500.0,
+            totalAmount: 29500.0,
+            isMathValid: true,
+            confidenceScore: 0.91,
+            client: { businessName: 'Sharma Electronics & Appliances', gstin: '07BBCDE2222B1Z8' },
+          },
+          {
+            id: 'inv-delhi-02',
+            senderPhone: '919811223344',
+            fileUrl: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&q=80&w=1000',
+            status: 'APPROVED',
+            invoiceNumber: 'INV-2026-0891',
+            invoiceDate: '2026-08-15',
+            supplierName: 'Om Prakash Stationery & Supplies',
+            supplierGstin: '07DDDDE4444D1Z2',
+            taxableAmount: 10000.0,
+            cgstAmount: 900.0,
+            sgstAmount: 900.0,
+            igstAmount: 0,
+            totalAmount: 11800.0,
+            isMathValid: true,
+            confidenceScore: 0.96,
+            client: { businessName: 'Aggarwal Traders', gstin: '07AABCA1111A1Z0' },
+          },
+          {
+            id: 'inv-delhi-03',
+            senderPhone: '919891002233',
+            fileUrl: 'https://images.unsplash.com/photo-1607344645866-009c320b5ab8?auto=format&fit=crop&q=80&w=1000',
+            status: 'NEEDS_REVIEW',
+            invoiceNumber: 'RCPT-8821',
+            invoiceDate: '2026-08-21',
+            supplierName: 'Haldiram Snacks Connaught Place',
+            supplierGstin: '07AAACH1234A1Z0',
+            taxableAmount: 1500.0,
+            cgstAmount: 37.5,
+            sgstAmount: 37.5,
+            igstAmount: 0,
+            totalAmount: 1575.0,
+            isMathValid: true,
+            confidenceScore: 0.88,
+            client: { businessName: 'Gupta Auto Components', gstin: '07CCDEF3333C1Z6' },
+          },
+          {
+            id: 'inv-delhi-04',
+            senderPhone: '919810112233',
+            fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1000',
+            status: 'EXPORTED',
+            invoiceNumber: 'SBI-2026/0412',
+            invoiceDate: '2026-08-19',
+            supplierName: 'Shree Balaji Industrial Hardware',
+            supplierGstin: '07AAAFB1234F1Z3',
+            taxableAmount: 18000.0,
+            cgstAmount: 1620.0,
+            sgstAmount: 1620.0,
+            igstAmount: 0,
+            totalAmount: 21240.0,
+            isMathValid: true,
+            confidenceScore: 0.98,
+            client: { businessName: 'Aggarwal Traders', gstin: '07AABCA1111A1Z0' },
+          },
+        ];
 
-  const loadInvoices = async () => {
-    setIsLoading(true);
-    try {
-      let statusParam = activeTab === 'ALL' ? '' : `&status=${activeTab}`;
-      let searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
-      
-      const res = await fetchApi<{ invoices: any[]; counts: Record<string, number> }>(
-        `/invoices?limit=50${statusParam}${searchParam}`
-      );
-      setInvoices(res.invoices || []);
-      setCounts(res.counts || {});
-    } catch (err) {
-      console.warn('Using mock sample data for offline preview:', err);
-      // Realistic Delhi CA mock invoices
-      const mockData = [
-        {
-          id: 'inv-delhi-01',
-          senderPhone: '919877665544',
-          fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1000',
-          status: 'NEEDS_REVIEW',
-          invoiceNumber: 'DEL-HGN-4412',
-          invoiceDate: '2026-08-20',
-          supplierName: 'Cybertronics Hardware Gurgaon',
-          supplierGstin: '06EEEFF5555E1Z9',
-          taxableAmount: 25000.0,
-          cgstAmount: 0,
-          sgstAmount: 0,
-          igstAmount: 4500.0,
-          totalAmount: 29500.0,
-          isMathValid: true,
-          confidenceScore: 0.91,
-          client: { businessName: 'Sharma Electronics & Appliances', gstin: '07BBCDE2222B1Z8' },
-        },
-        {
-          id: 'inv-delhi-02',
-          senderPhone: '919811223344',
-          fileUrl: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&q=80&w=1000',
-          status: 'APPROVED',
-          invoiceNumber: 'INV-2026-0891',
-          invoiceDate: '2026-08-15',
-          supplierName: 'Om Prakash Stationery & Supplies',
-          supplierGstin: '07DDDDE4444D1Z2',
-          taxableAmount: 10000.0,
-          cgstAmount: 900.0,
-          sgstAmount: 900.0,
-          igstAmount: 0,
-          totalAmount: 11800.0,
-          isMathValid: true,
-          confidenceScore: 0.96,
-          client: { businessName: 'Aggarwal Traders', gstin: '07AABCA1111A1Z0' },
-        },
-        {
-          id: 'inv-delhi-03',
-          senderPhone: '919891002233',
-          fileUrl: 'https://images.unsplash.com/photo-1607344645866-009c320b5ab8?auto=format&fit=crop&q=80&w=1000',
-          status: 'NEEDS_REVIEW',
-          invoiceNumber: 'RCPT-8821',
-          invoiceDate: '2026-08-21',
-          supplierName: 'Haldiram Snacks Connaught Place',
-          supplierGstin: '07AAACH1234A1Z0',
-          taxableAmount: 1500.0,
-          cgstAmount: 37.5,
-          sgstAmount: 37.5,
-          igstAmount: 0,
-          totalAmount: 1575.0,
-          isMathValid: true,
-          confidenceScore: 0.88,
-          client: { businessName: 'Gupta Auto Components', gstin: '07CCDEF3333C1Z6' },
-        },
-        {
-          id: 'inv-delhi-04',
-          senderPhone: '919810112233',
-          fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1000',
-          status: 'EXPORTED',
-          invoiceNumber: 'SBI-2026/0412',
-          invoiceDate: '2026-08-19',
-          supplierName: 'Shree Balaji Industrial Hardware',
-          supplierGstin: '07AAAFB1234F1Z3',
-          taxableAmount: 18000.0,
-          cgstAmount: 1620.0,
-          sgstAmount: 1620.0,
-          igstAmount: 0,
-          totalAmount: 21240.0,
-          isMathValid: true,
-          confidenceScore: 0.98,
-          client: { businessName: 'Aggarwal Traders', gstin: '07AABCA1111A1Z0' },
-        },
-      ];
+        const filtered = mockData.filter((item) => {
+          const matchesTab = activeTab === 'ALL' || item.status === activeTab;
+          const matchesSearch =
+            !searchQuery ||
+            item.supplierName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (item.client?.businessName || '').toLowerCase().includes(searchQuery.toLowerCase());
+          return matchesTab && matchesSearch;
+        });
 
-      const filtered = mockData.filter((item) => {
-        const matchesTab = activeTab === 'ALL' || item.status === activeTab;
-        const matchesSearch =
-          !searchQuery ||
-          item.supplierName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (item.client?.businessName || '').toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesTab && matchesSearch;
+        return {
+          invoices: filtered,
+          counts: {
+            NEEDS_REVIEW: mockData.filter((i) => i.status === 'NEEDS_REVIEW').length,
+            APPROVED: mockData.filter((i) => i.status === 'APPROVED').length,
+            EXPORTED: mockData.filter((i) => i.status === 'EXPORTED').length,
+          },
+        };
+      }
+    },
+  });
+
+  const invoices = data?.invoices || [];
+  const counts = data?.counts || {};
+
+  // 2. Direct Bill Upload Mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('senderPhone', '919811000000');
+      return await fetch('/api/v1/invoices/upload', {
+        method: 'POST',
+        body: formData,
       });
-
-      setInvoices(filtered);
-      setCounts({
-        NEEDS_REVIEW: mockData.filter((i) => i.status === 'NEEDS_REVIEW').length,
-        APPROVED: mockData.filter((i) => i.status === 'APPROVED').length,
-        EXPORTED: mockData.filter((i) => i.status === 'EXPORTED').length,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
+      showToast('Invoice uploaded successfully! Extracted fields are ready.', 'success');
+    },
+    onError: (err: any) => {
+      showToast(`Upload failed: ${err.message}`, 'error');
+    },
+  });
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -157,26 +176,10 @@ export const InboxPage: React.FC = () => {
     }
   };
 
-  const handleDirectUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDirectUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('senderPhone', '919811000000');
-
-      await fetch('/api/v1/invoices/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      loadInvoices();
-    } catch (err: any) {
-      alert(`Upload failed: ${err.message}`);
-    } finally {
-      setIsUploading(false);
-    }
+    uploadMutation.mutate(file);
   };
 
   return (
@@ -305,13 +308,13 @@ export const InboxPage: React.FC = () => {
           <FeatureGate flag={FEATURE_FLAGS.DIRECT_UPLOAD}>
             <label className="flex items-center justify-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold transition-colors cursor-pointer shadow-lg shadow-emerald-500/20 shrink-0">
               <UploadCloud className="w-4 h-4 stroke-[2.5]" />
-              <span>{isUploading ? 'Extracting...' : 'Upload Bill'}</span>
+              <span>{uploadMutation.isPending ? 'Extracting...' : 'Upload Bill'}</span>
               <input
                 type="file"
                 accept="image/*,application/pdf"
                 className="hidden"
                 onChange={handleDirectUpload}
-                disabled={isUploading}
+                disabled={uploadMutation.isPending}
               />
             </label>
           </FeatureGate>
@@ -349,7 +352,7 @@ export const InboxPage: React.FC = () => {
                   <td colSpan={9} className="p-8 text-center text-slate-500 dark:text-slate-400">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      <span>Loading incoming WhatsApp invoices...</span>
+                      <span>Loading cached invoices...</span>
                     </div>
                   </td>
                 </tr>

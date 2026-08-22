@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   CheckCircle2, 
   AlertTriangle, 
@@ -10,135 +10,140 @@ import {
   Filter, 
   Loader2 
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
 import { Gstr2bMatchStatus, ReconciliationSummary } from '@khatagenie/types';
 import { useToast } from '../context/ToastContext';
 
 export const Gstr2bReconPage: React.FC = () => {
-  const [summary, setSummary] = useState<ReconciliationSummary | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    loadSampleReconciliation();
-  }, []);
+  // 1. TanStack Query caching for Reconciliation Data
+  const { data: summary, isLoading, isFetching } = useQuery<ReconciliationSummary>({
+    queryKey: ['reconciliation', 'sample'],
+    queryFn: async () => {
+      try {
+        return await fetchApi<ReconciliationSummary>('/reconciliation/sample');
+      } catch (err: any) {
+        console.warn('Reconciliation sample load fallback:', err);
+        return {
+          period: '082026',
+          totalGstr2bRecords: 3,
+          totalBooksRecords: 4,
+          matchedCount: 2,
+          taxMismatchCount: 1,
+          missingInBooksCount: 1,
+          missingInGstr2bCount: 1,
+          totalItcAvailableBooks: 7740.0,
+          totalItcAvailableGstr2b: 7740.0,
+          itcMismatchVariance: 0.0,
+          items: [
+            {
+              id: 'recon_01',
+              matchStatus: Gstr2bMatchStatus.MATCHED,
+              confidenceScore: 1.0,
+              booksInvoiceNumber: 'SBI-2026/0412',
+              booksInvoiceDate: '2026-08-20',
+              booksSupplierGstin: '07AAAFB1234F1Z3',
+              booksSupplierName: 'Shree Balaji Industrial Hardware',
+              booksTaxAmount: 3240.0,
+              booksTotalAmount: 21240.0,
+              gstr2bSupplierGstin: '07AAAFB1234F1Z3',
+              gstr2bSupplierName: 'Shree Balaji Industrial Hardware',
+              gstr2bInvoiceNumber: 'SBI-2026/0412',
+              gstr2bInvoiceDate: '2026-08-20',
+              gstr2bTaxAmount: 3240.0,
+              gstr2bTotalAmount: 21240.0,
+              gstr2bItcEligible: true,
+              taxVariance: 0.0,
+              valueVariance: 0.0,
+              notes: 'Exact GSTIN and tax match.',
+            },
+            {
+              id: 'recon_02',
+              matchStatus: Gstr2bMatchStatus.MATCHED,
+              confidenceScore: 1.0,
+              booksInvoiceNumber: 'DEL-HGN-4412',
+              booksInvoiceDate: '2026-08-20',
+              booksSupplierGstin: '06EEEFF5555E1Z9',
+              booksSupplierName: 'Cybertronics Hardware Gurgaon',
+              booksTaxAmount: 4500.0,
+              booksTotalAmount: 29500.0,
+              gstr2bSupplierGstin: '06EEEFF5555E1Z9',
+              gstr2bSupplierName: 'Cybertronics Hardware Gurgaon',
+              gstr2bInvoiceNumber: 'DEL-HGN-4412',
+              gstr2bInvoiceDate: '2026-08-20',
+              gstr2bTaxAmount: 4500.0,
+              gstr2bTotalAmount: 29500.0,
+              gstr2bItcEligible: true,
+              taxVariance: 0.0,
+              valueVariance: 0.0,
+              notes: 'Exact IGST match.',
+            },
+            {
+              id: 'recon_03',
+              matchStatus: Gstr2bMatchStatus.MISSING_IN_BOOKS,
+              confidenceScore: 0.0,
+              gstr2bSupplierGstin: '07KLLMN8899K1Z5',
+              gstr2bSupplierName: 'Kailash Offset Printers Okhla',
+              gstr2bInvoiceNumber: 'KOP-8891',
+              gstr2bInvoiceDate: '2026-08-18',
+              gstr2bTaxAmount: 1350.0,
+              gstr2bTotalAmount: 8850.0,
+              gstr2bItcEligible: true,
+              notes: 'Invoice filed by supplier on GST portal, but missing in digitized books.',
+            },
+            {
+              id: 'recon_04',
+              matchStatus: Gstr2bMatchStatus.MISSING_IN_GSTR2B,
+              confidenceScore: 0.0,
+              booksInvoiceNumber: 'INV-2026-0891',
+              booksInvoiceDate: '2026-08-15',
+              booksSupplierGstin: '07DDDDE4444D1Z2',
+              booksSupplierName: 'Om Prakash Stationery & Supplies',
+              booksTaxAmount: 1800.0,
+              booksTotalAmount: 11800.0,
+              notes: 'Supplier has not filed GSTR-1 yet. Provisional ITC restricted under Rule 36(4).',
+            },
+          ],
+        };
+      }
+    },
+  });
 
-  const loadSampleReconciliation = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetchApi<ReconciliationSummary>('/reconciliation/sample');
-      setSummary(res);
-    } catch (err: any) {
-      console.warn('Reconciliation sample load fallback:', err);
-      setSummary({
-        period: '082026',
-        totalGstr2bRecords: 3,
-        totalBooksRecords: 4,
-        matchedCount: 2,
-        taxMismatchCount: 1,
-        missingInBooksCount: 1,
-        missingInGstr2bCount: 1,
-        totalItcAvailableBooks: 7740.0,
-        totalItcAvailableGstr2b: 7740.0,
-        itcMismatchVariance: 0.0,
-        items: [
-          {
-            id: 'recon_01',
-            matchStatus: Gstr2bMatchStatus.MATCHED,
-            confidenceScore: 1.0,
-            booksInvoiceNumber: 'SBI-2026/0412',
-            booksInvoiceDate: '2026-08-20',
-            booksSupplierGstin: '07AAAFB1234F1Z3',
-            booksSupplierName: 'Shree Balaji Industrial Hardware',
-            booksTaxAmount: 3240.0,
-            booksTotalAmount: 21240.0,
-            gstr2bSupplierGstin: '07AAAFB1234F1Z3',
-            gstr2bSupplierName: 'Shree Balaji Industrial Hardware',
-            gstr2bInvoiceNumber: 'SBI-2026/0412',
-            gstr2bInvoiceDate: '2026-08-20',
-            gstr2bTaxAmount: 3240.0,
-            gstr2bTotalAmount: 21240.0,
-            gstr2bItcEligible: true,
-            taxVariance: 0.0,
-            valueVariance: 0.0,
-            notes: 'Exact GSTIN and tax match.',
-          },
-          {
-            id: 'recon_02',
-            matchStatus: Gstr2bMatchStatus.MATCHED,
-            confidenceScore: 1.0,
-            booksInvoiceNumber: 'DEL-HGN-4412',
-            booksInvoiceDate: '2026-08-20',
-            booksSupplierGstin: '06EEEFF5555E1Z9',
-            booksSupplierName: 'Cybertronics Hardware Gurgaon',
-            booksTaxAmount: 4500.0,
-            booksTotalAmount: 29500.0,
-            gstr2bSupplierGstin: '06EEEFF5555E1Z9',
-            gstr2bSupplierName: 'Cybertronics Hardware Gurgaon',
-            gstr2bInvoiceNumber: 'DEL-HGN-4412',
-            gstr2bInvoiceDate: '2026-08-20',
-            gstr2bTaxAmount: 4500.0,
-            gstr2bTotalAmount: 29500.0,
-            gstr2bItcEligible: true,
-            taxVariance: 0.0,
-            valueVariance: 0.0,
-            notes: 'Exact IGST match.',
-          },
-          {
-            id: 'recon_03',
-            matchStatus: Gstr2bMatchStatus.MISSING_IN_BOOKS,
-            confidenceScore: 0.0,
-            gstr2bSupplierGstin: '07KLLMN8899K1Z5',
-            gstr2bSupplierName: 'Kailash Offset Printers Okhla',
-            gstr2bInvoiceNumber: 'KOP-8891',
-            gstr2bInvoiceDate: '2026-08-18',
-            gstr2bTaxAmount: 1350.0,
-            gstr2bTotalAmount: 8850.0,
-            gstr2bItcEligible: true,
-            notes: 'Invoice filed by supplier on GST portal, but missing in digitized books.',
-          },
-          {
-            id: 'recon_04',
-            matchStatus: Gstr2bMatchStatus.MISSING_IN_GSTR2B,
-            confidenceScore: 0.0,
-            booksInvoiceNumber: 'INV-2026-0891',
-            booksInvoiceDate: '2026-08-15',
-            booksSupplierGstin: '07DDDDE4444D1Z2',
-            booksSupplierName: 'Om Prakash Stationery & Supplies',
-            booksTaxAmount: 1800.0,
-            booksTotalAmount: 11800.0,
-            notes: 'Supplier has not filed GSTR-1 yet. Provisional ITC restricted under Rule 36(4).',
-          },
-        ],
+  // 2. Upload Mutation for GSTR-2B JSON
+  const uploadMutation = useMutation({
+    mutationFn: async (json: any) => {
+      return await fetchApi<ReconciliationSummary>('/reconciliation/process', {
+        method: 'POST',
+        body: JSON.stringify(json),
       });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    onSuccess: (res) => {
+      queryClient.setQueryData(['reconciliation', 'sample'], res);
+      showToast(
+        `GSTR-2B Reconciled! Processed ${res.totalGstr2bRecords} portal records against ${res.totalBooksRecords} books entries.`,
+        'success'
+      );
+    },
+    onError: (err: any) => {
+      showToast(`Reconciliation failed: ${err.message || 'Please upload a valid GST Portal JSON file.'}`, 'error');
+    },
+  });
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = async (event) => {
+    reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        setIsLoading(true);
-        const res = await fetchApi<ReconciliationSummary>('/reconciliation/process', {
-          method: 'POST',
-          body: JSON.stringify(json),
-        });
-        setSummary(res);
-        showToast(
-          `GSTR-2B Reconciled! Processed ${res.totalGstr2bRecords} portal records against ${res.totalBooksRecords} books entries.`,
-          'success'
-        );
-      } catch (err: any) {
-        showToast(`Reconciliation failed: ${err.message || 'Please upload a valid GST Portal JSON file.'}`, 'error');
-      } finally {
-        setIsLoading(false);
+        uploadMutation.mutate(json);
+      } catch {
+        showToast('Invalid JSON file format. Please upload valid GST portal data.', 'error');
       }
     };
     reader.readAsText(file);
@@ -149,6 +154,8 @@ export const Gstr2bReconPage: React.FC = () => {
     return item.matchStatus === filterStatus;
   });
 
+  const isBusy = isLoading || uploadMutation.isPending;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 safe-pb">
       {/* Header */}
@@ -157,6 +164,11 @@ export const Gstr2bReconPage: React.FC = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
             <ArrowRightLeft className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
             <span>GSTR-2B 2-Way ITC Reconciliation</span>
+            {isFetching && !isLoading && (
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/20 animate-pulse">
+                Syncing...
+              </span>
+            )}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Automated 2-way comparison between digitized WhatsApp accounting books and GST Portal GSTR-2B filing returns.
@@ -167,13 +179,13 @@ export const Gstr2bReconPage: React.FC = () => {
         <div className="flex items-center space-x-3">
           <label className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
             <UploadCloud className="w-4 h-4 stroke-[2.5]" />
-            <span>Upload GSTR-2B JSON</span>
+            <span>{uploadMutation.isPending ? 'Reconciling...' : 'Upload GSTR-2B JSON'}</span>
             <input
               type="file"
               accept=".json,application/json"
               className="hidden"
               onChange={handleFileUpload}
-              disabled={isLoading}
+              disabled={isBusy}
             />
           </label>
         </div>
@@ -289,7 +301,7 @@ export const Gstr2bReconPage: React.FC = () => {
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-500">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-500 mb-2" />
-                    <span>Reconciling GSTR-2B records...</span>
+                    <span>Loading cached GSTR-2B records...</span>
                   </td>
                 </tr>
               ) : filteredItems?.length === 0 ? (
