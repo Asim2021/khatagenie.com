@@ -89,6 +89,7 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
   - Implemented fast-fail DB availability check with TTL caching in `apps/api/src/lib/prisma.ts` to prevent socket timeout blocking in offline/remote modes.
   - Isolated `/login` from the global `<Navbar />` by routing through `AppLayout`, eliminating redundant "Sign In" header buttons on the login page.
   - Redesigned `LoginPage.tsx` into a high-end dual-column layout with brand storytelling, tagline, 3 core value cards (WhatsApp OCR, GSTR-2B Recon, Tally Export), and compliance badges.
+  - Optimized Mobile Login UX: Hidden the desktop branding banner on mobile screens (`< lg`), providing immediate full-viewport access to the Sign In and Registration forms with zero initial scroll required.
   - Verified full monorepo build (`npm run build`) and test suites: 100% Passed.
 
 ### Decisions

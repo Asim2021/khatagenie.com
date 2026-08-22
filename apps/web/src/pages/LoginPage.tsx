@@ -8,25 +8,30 @@ import {
   Lock, 
   Mail, 
   User, 
-  Phone, 
   ArrowRight, 
   MessageSquare, 
   ArrowRightLeft, 
   FileSpreadsheet, 
   ShieldCheck, 
   Zap,
-  TrendingUp
+  TrendingUp,
+  Eye,
+  EyeOff,
+  Loader2,
+  KeyRound,
+  UserPlus
 } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 export const LoginPage: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('admin@khatagenie.com');
   const [password, setPassword] = useState('KhataGenie#2026');
   const [firmName, setFirmName] = useState('Bansal & Associates CA');
   const [fullName, setFullName] = useState('CA Rajesh Bansal, FCA');
-  const [phone, setPhone] = useState('919811000000');
+  const [phone, setPhone] = useState('9811000000');
   const [isLoading, setIsLoading] = useState(false);
 
   const { login } = useAuth();
@@ -42,9 +47,11 @@ export const LoginPage: React.FC = () => {
 
     try {
       if (isRegister) {
+        // Auto-prefix 91 if user entered standard 10 digit Indian mobile
+        const cleanPhone = phone.trim().startsWith('91') ? phone.trim() : `91${phone.trim()}`;
         const res = await fetchApi<{ token: string; user: any }>('/auth/register', {
           method: 'POST',
-          body: JSON.stringify({ firmName, fullName, email, password, phone }),
+          body: JSON.stringify({ firmName, fullName, email, password, phone: cleanPhone }),
         });
         login(res.token, res.user);
         showToast(`Welcome ${res.user.fullName} to KhataGenie!`, 'success');
@@ -73,8 +80,8 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-150">
-      {/* Left Column: Brand Story, Tagline & Value Props (Desktop & Tablet) */}
-      <div className="lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 text-white p-6 sm:p-10 lg:p-14 flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-slate-800">
+      {/* Left Column: Brand Story, Tagline & Value Props (Desktop Only - Hidden on Mobile for Instant Login UX) */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 text-white p-8 lg:p-14 flex-col justify-between relative overflow-hidden border-r border-slate-800 shrink-0">
         {/* Ambient Glows */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -158,17 +165,24 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Column: Authentication Card & Theme Control */}
-      <div className="lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 relative bg-slate-50 dark:bg-slate-950">
-        {/* Top Control Bar */}
-        <div className="flex items-center justify-between mb-6 sm:mb-8">
-          <div className="lg:hidden flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-slate-950 font-bold">
-              <Sparkles className="w-4 h-4" />
+      {/* Right Column: Authentication Card & Theme Control (Full-Width on Mobile for Instant Access) */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-4 sm:p-8 lg:p-14 relative bg-slate-50 dark:bg-slate-950 min-h-screen">
+        {/* Top Control Bar with Brand Badge on Mobile */}
+        <div className="flex items-center justify-between mb-4 sm:mb-8">
+          <div className="lg:hidden flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-400 to-emerald-600 flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/20">
+              <Sparkles className="w-4 h-4 stroke-[2.5]" />
             </div>
-            <span className="font-bold text-sm">KhataGenie CA</span>
+            <div>
+              <span className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1">
+                Khata<span className="text-emerald-600 dark:text-emerald-400">Genie</span>
+                <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  CA PRO
+                </span>
+              </span>
+            </div>
           </div>
-          <div className="ml-auto flex items-center space-x-3">
+          <div className="ml-auto flex items-center space-x-2 sm:space-x-3">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
               Appearance:
             </span>
@@ -178,6 +192,34 @@ export const LoginPage: React.FC = () => {
 
         {/* Auth Form Box */}
         <div className="max-w-md w-full mx-auto my-auto space-y-6">
+          {/* Segmented Mode Switcher Tabs */}
+          <div className="grid grid-cols-2 p-1 bg-slate-200/80 dark:bg-slate-900 rounded-2xl border border-slate-300 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setIsRegister(false)}
+              className={`flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                !isRegister
+                  ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-slate-700'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>CA Sign In</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsRegister(true)}
+              className={`flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                isRegister
+                  ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-slate-700'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Register Practice</span>
+            </button>
+          </div>
+
           {/* Header text */}
           <div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -185,7 +227,7 @@ export const LoginPage: React.FC = () => {
             </h2>
             <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {isRegister
-                ? 'Create a firm account to manage multiple MSME clients.'
+                ? 'Create a firm organization to manage multiple MSME clients and staff.'
                 : 'Sign in to access your firm’s automated invoice review inbox.'}
             </p>
           </div>
@@ -204,6 +246,7 @@ export const LoginPage: React.FC = () => {
                       <input
                         type="text"
                         required
+                        autoComplete="organization"
                         value={firmName}
                         onChange={(e) => setFirmName(e.target.value)}
                         placeholder="e.g. Bansal & Associates CA"
@@ -221,6 +264,7 @@ export const LoginPage: React.FC = () => {
                       <input
                         type="text"
                         required
+                        autoComplete="name"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="e.g. CA Rajesh Bansal, FCA"
@@ -233,17 +277,24 @@ export const LoginPage: React.FC = () => {
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                       Office WhatsApp Phone *
                     </label>
-                    <div className="relative">
-                      <Phone className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5" />
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3.5 text-xs font-mono font-bold text-slate-500 dark:text-slate-400 border-r border-slate-300 dark:border-slate-700 pr-2">
+                        +91
+                      </span>
                       <input
                         type="tel"
                         required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="e.g. 919811000000"
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                        autoComplete="tel"
+                        value={phone.replace(/^91/, '')}
+                        onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="9811000000"
+                        maxLength={10}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl pl-16 pr-4 py-2.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
                       />
                     </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                      10-digit Indian WhatsApp mobile number for alerts.
+                    </p>
                   </div>
                 </>
               )}
@@ -257,6 +308,7 @@ export const LoginPage: React.FC = () => {
                   <input
                     type="email"
                     required
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@firm.com"
@@ -272,23 +324,41 @@ export const LoginPage: React.FC = () => {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
+                    autoComplete={isRegister ? 'new-password' : 'current-password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 mt-3"
+                className="w-full flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 mt-3 cursor-pointer"
               >
-                <span>{isLoading ? 'Authenticating...' : isRegister ? 'Register CA Practice' : 'Sign In'}</span>
-                <ArrowRight className="w-4 h-4" />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{isRegister ? 'Registering CA Firm...' : 'Authenticating...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{isRegister ? 'Register CA Practice' : 'Sign In to KhataGenie'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </form>
 
@@ -303,19 +373,6 @@ export const LoginPage: React.FC = () => {
                 <span>Quick Fill Pre-Configured Demo Credentials</span>
               </button>
             </div>
-          </div>
-
-          {/* Mode Switcher */}
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setIsRegister(!isRegister)}
-              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors font-medium"
-            >
-              {isRegister
-                ? 'Already registered? Sign In to your account'
-                : 'Need a CA firm account? Register your practice'}
-            </button>
           </div>
         </div>
 
