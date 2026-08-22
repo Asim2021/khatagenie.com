@@ -11,15 +11,10 @@
   "dependencies": {
     "@khatagenie/shared": "*",
     "@khatagenie/types": "*",
-    "@tanstack/react-query": "^5.39.0",
-    "clsx": "^2.1.1",
     "lucide-react": "^0.379.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-hook-form": "^7.51.5",
-    "react-router-dom": "^6.23.1",
-    "tailwind-merge": "^2.3.0",
-    "zod": "^3.23.8"
+    "react-router-dom": "^6.23.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

@@ -1,22 +1,18 @@
 import { create } from 'xmlbuilder2';
-import { InvoiceRecord } from '@khatagenie/types';
 
-export class TallyExporter {
-  /**
-   * Formats a date object or ISO string into Tally's strict YYYYMMDD format.
-   */
-  private formatTallyDate(dateVal?: string | Date | null): string {
-    const d = dateVal ? new Date(dateVal) : new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}${mm}${dd}`;
-  }
+function formatTallyDate(dateVal?: string | Date | null): string {
+  const d = dateVal ? new Date(dateVal) : new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}${mm}${dd}`;
+}
 
+export const tallyExporter = {
   /**
    * Generates a Tally Prime compatible XML import string for a collection of approved invoices.
    */
-  public generatePurchaseVouchersXml(invoices: any[], companyName = 'KhataGenie Client'): string {
+  generatePurchaseVouchersXml(invoices: any[], companyName = 'KhataGenie Client'): string {
     const root = create({ version: '1.0', encoding: 'UTF-8' }).ele('ENVELOPE');
 
     // Header
@@ -43,7 +39,7 @@ export class TallyExporter {
         OBJVIEW: 'Accounting Voucher View',
       });
 
-      const tallyDate = this.formatTallyDate(inv.invoiceDate);
+      const tallyDate = formatTallyDate(inv.invoiceDate);
       const invNumber = inv.invoiceNumber || `KG-${inv.id.slice(0, 8)}`;
       const supplierName = inv.supplierName || 'Cash Supplier';
       const totalAmount = Number(inv.totalAmount || 0);
@@ -98,7 +94,6 @@ export class TallyExporter {
     }
 
     return root.end({ prettyPrint: true });
-  }
-}
+  },
+};
 
-export const tallyExporter = new TallyExporter();

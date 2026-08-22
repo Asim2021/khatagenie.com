@@ -13,14 +13,16 @@
 - All 14 living memory documentation files in `/docs` are synchronized with repository reality.
 
 **Recently Completed**:
+- Conducted Ponytail whole-repo audit and executed lean simplifications.
+- Removed 7 unused dependencies across `apps/web` and `apps/api`.
+- De-duplicated ~75 lines of synchronous OCR extraction in `whatsappService` by delegating directly to `extractionQueue`.
+- Streamlined `storageService`, `pdfProcessor`, `excelExporter`, and `tallyExporter` service implementations.
+- Verified monorepo build (`npm run build`) and all 3 test suites: 100% Passed.
 - Implemented GSTR-2B 2-way ITC reconciliation engine (`gstr2bService`) and UI dashboard (`Gstr2bReconPage.tsx`).
-- Created pluggable storage provider (`storageService`) and PDF page processor (`pdfProcessor`).
 - Created background OCR worker queue (`extractionQueue`).
 - Created production `LoginPage.tsx` with CA firm registration and Quick Demo Fill.
-- Created `ToastContext` and toast notification system.
-- Registered 6 new enterprise feature flags with baseline default `false` in `packages/types/src/featureFlags.ts`.
-- Added `apps/api/test-recon.ts` test suite: 100% Passed.
-- Verified monorepo build (`npm run build`): 100% Passed.
+- Protected all private routes with `<ProtectedRoute>` and unauth redirection.
+
 
 **Open Problems**:
 - None.

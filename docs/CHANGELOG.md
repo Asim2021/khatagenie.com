@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.1] - 2026-08-23
+
+### Changed
+- **Ponytail Whole-Repo Simplification**:
+  - Removed 7 unused/redundant dependencies across packages (`@tanstack/react-query`, `react-hook-form`, `tailwind-merge`, `clsx`, `zod` in web; `fastify-plugin`, `pino` in api).
+  - De-duplicated ~75 lines of synchronous OCR extraction and DB persistence in WhatsApp service by unifying under `extractionQueue`.
+  - Streamlined storage service from 3-tier class hierarchy into a clean disk service.
+  - Flattened `pdfProcessor`, `excelExporter`, and `tallyExporter` single-method classes into direct, clean exported objects.
+  - Verified 100% build pass and zero regressions across all test suites.
+
 ## [0.2.0] - 2026-08-23
 
 ### Added

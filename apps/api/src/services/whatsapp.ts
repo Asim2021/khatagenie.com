@@ -2,9 +2,8 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { prisma } from '../lib/prisma';
-import { visionService } from './vision';
-import { InvoiceStatus, InvoiceType } from '@prisma/client';
-import { extractPanFromGstin } from '@khatagenie/shared';
+import { InvoiceStatus } from '@prisma/client';
+import { extractionQueue } from './queue';
 
 export interface WhatsAppMediaMessage {
   from: string; // sender phone number (e.g. "919811000000")
@@ -132,7 +131,7 @@ export class WhatsAppService {
   }
 
   /**
-   * Processes incoming WhatsApp media message and orchestrates extraction.
+   * Processes incoming WhatsApp media message and delegates extraction to background queue.
    */
   public async processIncomingMedia(mediaMsg: WhatsAppMediaMessage): Promise<void> {
     console.log(`📥 Processing WhatsApp bill from +${mediaMsg.from} (Media: ${mediaMsg.mediaId})`);
@@ -173,82 +172,10 @@ export class WhatsAppService {
       },
     });
 
-    // 4. Trigger AI Vision Extraction
-    try {
-      const { extraction, isMathValid, rawResponse } = await visionService.extractInvoiceData(
-        fullDiskPath,
-        true
-      );
-
-      const supplierPan = extractPanFromGstin(extraction.supplierGstin);
-
-      // 5. Update Invoice with extracted fields
-      await prisma.$transaction(async (tx) => {
-        await tx.invoice.update({
-          where: { id: invoice.id },
-          data: {
-            status: InvoiceStatus.NEEDS_REVIEW,
-            supplierName: extraction.supplierName,
-            supplierGstin: extraction.supplierGstin,
-            supplierPan,
-            supplierAddress: extraction.supplierAddress,
-            buyerGstin: extraction.buyerGstin || client?.gstin,
-            invoiceNumber: extraction.invoiceNumber,
-            invoiceDate: extraction.invoiceDate ? new Date(extraction.invoiceDate) : null,
-            dueDate: extraction.dueDate ? new Date(extraction.dueDate) : null,
-            invoiceType: (extraction.invoiceType as any) || InvoiceType.B2B_TAX_INVOICE,
-            taxableAmount: extraction.taxableAmount,
-            cgstAmount: extraction.cgstAmount,
-            sgstAmount: extraction.sgstAmount,
-            igstAmount: extraction.igstAmount,
-            cessAmount: extraction.cessAmount,
-            roundOffAmount: extraction.roundOffAmount,
-            totalAmount: extraction.totalAmount,
-            isRcm: extraction.isReverseCharge,
-            isMathValid,
-            confidenceScore: extraction.confidenceScore,
-            rawAiResponse: rawResponse,
-          },
-        });
-
-        // Insert Line Items
-        if (extraction.lineItems && extraction.lineItems.length > 0) {
-          await tx.invoiceItem.createMany({
-            data: extraction.lineItems.map((item) => ({
-              invoiceId: invoice.id,
-              description: item.description,
-              hsnCode: item.hsnCode || null,
-              quantity: item.quantity || null,
-              unit: item.unit || null,
-              unitPrice: item.unitPrice || null,
-              taxableAmount: item.taxableAmount,
-              gstRate: item.gstRate,
-              cgstAmount: item.cgstAmount || null,
-              sgstAmount: item.sgstAmount || null,
-              igstAmount: item.igstAmount || null,
-              totalAmount: item.totalAmount,
-            })),
-          });
-        }
-      });
-
-      // 6. Send WhatsApp confirmation back to client
-      const invDisplay = extraction.invoiceNumber ? `#${extraction.invoiceNumber}` : '';
-      const amountDisplay = extraction.totalAmount ? `₹${extraction.totalAmount.toFixed(2)}` : '';
-      const replyMessage = `🙏 Namaste! KhataGenie received your bill ${invDisplay} for ${amountDisplay}.\n\nIt has been digitized and forwarded to your CA for review & filing.`;
-
-      await this.sendTextMessage(mediaMsg.from, replyMessage);
-    } catch (err: any) {
-      console.error(`AI Extraction failed for invoice ${invoice.id}:`, err);
-      await prisma.invoice.update({
-        where: { id: invoice.id },
-        data: {
-          status: InvoiceStatus.EXTRACTION_FAILED,
-          errorMessage: err.message,
-        },
-      });
-    }
+    // 4. Delegate to background extraction queue
+    extractionQueue.enqueue(invoice.id, fullDiskPath, mediaMsg.from);
   }
 }
 
 export const whatsappService = new WhatsAppService();
+
