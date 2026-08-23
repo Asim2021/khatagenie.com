@@ -219,7 +219,7 @@ export const InboxPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8 safe-pb overflow-x-hidden">
+    <div className="page-container">
       {/* Top Banner & KPI Stat Cards with Double-Bezel Architecture */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Needs Review Card */}
@@ -347,13 +347,13 @@ export const InboxPage: React.FC = () => {
         {/* Search & Direct Upload */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
           <div className="relative flex-1 sm:flex-none">
-            <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search vendor, GSTIN, bill #..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-64 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors shadow-sm"
+              className="search-input-field w-full sm:w-72"
             />
           </div>
 
@@ -542,7 +542,8 @@ export const InboxPage: React.FC = () => {
                     type="checkbox"
                     onChange={handleSelectAll}
                     checked={selectedIds.length > 0 && selectedIds.length === invoices.length}
-                    className="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-500 focus:ring-0 cursor-pointer"
+                    className="checkbox-custom"
+                    aria-label="Select all invoices"
                   />
                 </th>
                 <th className="py-3 sm:py-4 px-3">MSME Client</th>
@@ -594,7 +595,8 @@ export const InboxPage: React.FC = () => {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleSelectOne(inv.id)}
-                          className="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-500 focus:ring-0 cursor-pointer"
+                          className="checkbox-custom"
+                          aria-label={`Select invoice ${inv.invoiceNumber}`}
                         />
                       </td>
 

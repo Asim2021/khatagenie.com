@@ -128,7 +128,7 @@ export const ClientsPage: React.FC = () => {
   );
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8 safe-pb overflow-x-hidden">
+    <div className="page-container">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
@@ -152,13 +152,13 @@ export const ClientsPage: React.FC = () => {
 
       {/* Search Bar */}
       <div className="relative max-w-md">
-        <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
           placeholder="Search business name, GSTIN, or phone..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors shadow-sm"
+          className="search-input-field"
         />
       </div>
 
@@ -267,7 +267,7 @@ export const ClientsPage: React.FC = () => {
 
                 <form onSubmit={handleCreateClient} className="space-y-3.5">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                       Legal Business Name *
                     </label>
                     <input
@@ -276,12 +276,12 @@ export const ClientsPage: React.FC = () => {
                       placeholder="e.g. Bansal Electrical Works"
                       value={businessName}
                       onChange={(e) => setBusinessName(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                      className="input-field"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                       Trade / Brand Name
                     </label>
                     <input
@@ -289,12 +289,12 @@ export const ClientsPage: React.FC = () => {
                       placeholder="e.g. Bansal Lights Delhi"
                       value={tradeName}
                       onChange={(e) => setTradeName(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                      className="input-field"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                       GSTIN (15-Character)
                     </label>
                     <input
@@ -303,12 +303,12 @@ export const ClientsPage: React.FC = () => {
                       placeholder="e.g. 07AABCB1234A1Z5"
                       value={gstin}
                       onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                      className="input-field font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                       WhatsApp Phone Number (with Country Code) *
                     </label>
                     <input
@@ -317,12 +317,12 @@ export const ClientsPage: React.FC = () => {
                       placeholder="e.g. 919811000000"
                       value={whatsappPhone}
                       onChange={(e) => setWhatsappPhone(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                      className="input-field font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                       Tally Prime Ledger Name
                     </label>
                     <input
@@ -330,7 +330,7 @@ export const ClientsPage: React.FC = () => {
                       placeholder="e.g. Bansal Electrical - Purchase A/c"
                       value={tallyLedgerName}
                       onChange={(e) => setTallyLedgerName(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                      className="input-field"
                     />
                   </div>
 

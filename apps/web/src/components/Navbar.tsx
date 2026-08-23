@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   FileText, 
@@ -12,7 +12,9 @@ import {
   LogOut, 
   LogIn,
   Menu,
-  X
+  X,
+  ChevronDown,
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { FeatureGate } from './FeatureGate';
@@ -23,6 +25,37 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close user dropdown on outside click or escape
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setUserMenuOpen(false);
+      }
+    };
+
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [userMenuOpen]);
+
+  // Close menus on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setUserMenuOpen(false);
+  }, [location.pathname]);
 
   const navItems = [
     { label: 'Invoices Inbox', path: '/', icon: FileText },
@@ -32,17 +65,18 @@ export const Navbar: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors duration-150">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Brand Logo & Name */}
-          <div className="flex items-center space-x-3 lg:space-x-5 shrink-0">
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 transition-colors duration-150 shadow-sm">
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+        <div className="flex items-center justify-between h-16 gap-4">
+          
+          {/* 1. Far-Left Brand Logo & CA PRO Tier */}
+          <div className="flex items-center space-x-3 sm:space-x-4 shrink-0">
             <Link to="/" className="flex items-center space-x-2.5 group shrink-0">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
-                <Sparkles className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-950 stroke-[2.5]" />
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
+                <Sparkles className="w-4.5 h-4.5 text-slate-950 stroke-[2.5]" />
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none whitespace-nowrap">
+                <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none whitespace-nowrap">
                   Khata<span className="text-emerald-600 dark:text-emerald-400">Genie</span>
                 </span>
                 <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap uppercase tracking-wide">
@@ -50,51 +84,48 @@ export const Navbar: React.FC = () => {
                 </span>
               </div>
             </Link>
-
-            {/* Desktop Navigation Links */}
-            {user && (
-              <nav className="hidden md:flex items-center space-x-1 pl-3 lg:pl-4 border-l border-slate-200 dark:border-slate-800">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  const linkElement = (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                        isActive
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-
-                  if (item.flag) {
-                    return (
-                      <FeatureGate key={item.path} flag={item.flag}>
-                        {linkElement}
-                      </FeatureGate>
-                    );
-                  }
-                  return linkElement;
-                })}
-              </nav>
-            )}
           </div>
 
-          {/* Desktop Right Controls */}
-          <div className="hidden sm:flex items-center space-x-2.5 sm:space-x-3">
-            {/* Theme Toggle (Desktop) */}
-            <ThemeToggle />
+          {/* 2. Center / Left-Center Desktop Navigation Tabs */}
+          {user && (
+            <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center max-w-2xl">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                const linkElement = (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-150 ${
+                      isActive
+                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-transparent'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
 
+                if (item.flag) {
+                  return (
+                    <FeatureGate key={item.path} flag={item.flag}>
+                      {linkElement}
+                    </FeatureGate>
+                  );
+                }
+                return linkElement;
+              })}
+            </nav>
+          )}
+
+          {/* 3. Far-Right Desktop Controls & User Profile Popover */}
+          <div className="hidden lg:flex items-center space-x-3 shrink-0">
             {user ? (
               <>
-                {/* Live WhatsApp Listener Status */}
+                {/* Live WhatsApp Bot Status Indicator */}
                 <FeatureGate flag={FEATURE_FLAGS.WHATSAPP_INGESTION}>
-                  <div className="hidden lg:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+                  <div className="hidden xl:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -104,42 +135,124 @@ export const Navbar: React.FC = () => {
                   </div>
                 </FeatureGate>
 
-                {/* Feature Flag Management for Root/Superadmins */}
-                <Link
-                  to="/settings/feature-flags"
-                  title="Feature Flags Administration"
-                  className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-                >
-                  <Sliders className="w-4 h-4" />
-                </Link>
-
-                {/* User Profile / Auth Pill */}
-                <div className="flex items-center space-x-2.5 pl-3 border-l border-slate-200 dark:border-slate-800">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
-                    CA
-                  </div>
-                  <div className="hidden xl:block text-left">
-                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-tight truncate max-w-[150px]">
-                      {user.fullName || 'Bansal & Associates'}
-                    </p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 font-mono truncate max-w-[150px]">
-                      <ShieldCheck className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
-                      {user.organizationName || 'Connaught Place, Delhi'}
-                    </p>
-                  </div>
+                {/* User Profile Trigger Button with Chevron */}
+                <div className="relative" ref={userMenuRef}>
                   <button
-                    onClick={logout}
-                    title="Sign Out"
-                    className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    type="button"
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className={`flex items-center space-x-2.5 p-1.5 pr-3 rounded-2xl border transition-all duration-150 ${
+                      userMenuOpen
+                        ? 'bg-slate-100 dark:bg-slate-800 border-emerald-500/40 ring-2 ring-emerald-500/10'
+                        : 'bg-slate-50/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800'
+                    }`}
+                    aria-expanded={userMenuOpen}
+                    aria-haspopup="true"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white flex items-center justify-center text-xs font-black shadow-sm shrink-0">
+                      CA
+                    </div>
+                    <div className="text-left hidden sm:block">
+                      <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight truncate max-w-[130px]">
+                        {user.fullName || 'Bansal & Associates'}
+                      </p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate max-w-[130px] flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                        {user.organizationName || 'Connaught Place'}
+                      </p>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${userMenuOpen ? 'rotate-180 text-emerald-500' : ''}`} />
                   </button>
+
+                  {/* Floating User Info Popover Card */}
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2.5 w-80 rounded-2xl p-1 bg-slate-200/80 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="rounded-xl bg-white dark:bg-slate-900 p-4 border border-slate-100 dark:border-slate-800/70 shadow-inner-glow space-y-4">
+                        
+                        {/* Profile Header */}
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 flex items-center justify-center text-sm font-black text-emerald-700 dark:text-emerald-400 shrink-0">
+                            CA
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                                {user.fullName || 'Bansal & Associates'}
+                              </h4>
+                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 uppercase shrink-0">
+                                CA PRO
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 flex items-center gap-1 font-medium">
+                              <UserCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                              <span>{user.organizationName || 'Connaught Place, Delhi'}</span>
+                            </p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono truncate">
+                              {user.email || 'ca.bansal@khatagenie.com'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* WhatsApp Status inside Card for smaller screens */}
+                        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+                          <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1.5 font-medium">
+                            <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            WhatsApp Bot
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Active
+                          </span>
+                        </div>
+
+                        {/* Quick Settings & Navigation */}
+                        <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+                          <Link
+                            to="/settings/feature-flags"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors group"
+                          >
+                            <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                            <div className="text-left flex-1">
+                              <p className="font-bold">Feature Flags Settings</p>
+                              <p className="text-[10px] text-slate-400 font-normal">Manage tenant switches & gates</p>
+                            </div>
+                          </Link>
+                        </div>
+
+                        {/* Appearance / Theme Toggle Inside Popover Card */}
+                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center justify-between mb-1.5 px-1">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              Appearance
+                            </span>
+                          </div>
+                          <ThemeToggle variant="segmented" />
+                        </div>
+
+                        {/* Sign Out Button in Card Footer */}
+                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUserMenuOpen(false);
+                              logout();
+                            }}
+                            className="w-full flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 border border-rose-200 dark:border-rose-800/60 transition-colors cursor-pointer"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign Out of Account</span>
+                          </button>
+                        </div>
+
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
               <Link
                 to="/login"
-                className="inline-flex items-center space-x-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3.5 py-1.5 rounded-lg text-xs transition-colors shadow-lg shadow-emerald-500/20"
+                className="inline-flex items-center space-x-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-lg shadow-emerald-500/20"
               >
                 <LogIn className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>Sign In</span>
@@ -147,27 +260,60 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile Right Bar: Theme Toggle & Hamburger Button */}
-          <div className="flex items-center space-x-1 sm:hidden">
-            <ThemeToggle />
+          {/* 4. Mobile & Tablet Trigger Bar (Visible at < lg: 1024px) */}
+          <div className="flex items-center space-x-2 lg:hidden">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors focus:outline-none"
+              className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors focus:outline-none border border-slate-200 dark:border-slate-800"
               aria-label="Toggle navigation menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5 text-rose-500" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
+
         </div>
       </div>
 
-      {/* Mobile Collapsible Navigation Menu */}
+      {/* 5. Mobile & Tablet Collapsible Drawer (Synchronized for all widths < lg) */}
       {mobileMenuOpen && (
-        <div className="sm:hidden border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-4 pt-3 pb-5 space-y-4 animate-in slide-in-from-top-2 duration-200 shadow-2xl">
-          {/* Navigation Links */}
+        <div className="lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-4 pt-3 pb-6 space-y-4 animate-in slide-in-from-top-2 duration-200 shadow-2xl">
           {user ? (
             <>
+              {/* User Profile Card in Mobile Drawer */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white flex items-center justify-center text-xs font-black shadow-sm shrink-0">
+                    CA
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                        {user.fullName || 'Bansal & Associates'}
+                      </p>
+                      <span className="text-[9px] font-mono font-bold px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 uppercase">
+                        CA PRO
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                      {user.organizationName || 'Connaught Place, Delhi'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    logout();
+                  }}
+                  title="Sign Out"
+                  className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition-colors border border-rose-200 dark:border-rose-800/60"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Navigation Links in Mobile Drawer */}
               <div className="space-y-1">
                 {navItems.map((item) => {
                   const Icon = item.icon;
@@ -177,13 +323,13 @@ export const Navbar: React.FC = () => {
                       key={item.path}
                       to={item.path}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                      className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                         isActive
                           ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm'
                           : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                       }`}
                     >
-                      <Icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      <Icon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                       <span>{item.label}</span>
                     </Link>
                   );
@@ -201,51 +347,23 @@ export const Navbar: React.FC = () => {
                 <Link
                   to="/settings/feature-flags"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                     location.pathname === '/settings/feature-flags'
                       ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <Sliders className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>Feature Flags Settings</span>
                 </Link>
               </div>
 
               {/* Theme Switcher in Mobile Drawer */}
               <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">
                   Appearance
                 </p>
                 <ThemeToggle variant="segmented" />
-              </div>
-
-              {/* Mobile User Context & Sign Out */}
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                    CA
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-slate-200">
-                      {user.fullName || 'Bansal & Associates'}
-                    </p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                      {user.organizationName || 'Connaught Place'}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    logout();
-                  }}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
-                </button>
               </div>
             </>
           ) : (
@@ -266,3 +384,4 @@ export const Navbar: React.FC = () => {
     </header>
   );
 };
+

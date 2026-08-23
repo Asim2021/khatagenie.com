@@ -147,3 +147,16 @@ This document tracks all significant architectural and technical decisions made 
 - **Trade-offs**: None.
 - **Risks**: None; verified via automated Playwright screenshots and end-to-end integration tests.
 
+---
+
+## DEC-014: Fluid Full-Width Container Layout, Header Popover Encapsulation & Synchronized Responsive Breakpoints
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Centered `max-w-7xl` boxes caused massive dead margins on widescreen displays (1440p, 4K) for dense financial tables. Header controls were congested with separate theme toggles, feature flags settings, and sign out buttons. Viewports between 640px and 767px suffered a dead zone where neither navigation links nor the hamburger icon were visible. Form inputs had inconsistent generic styling.
+- **Alternatives Considered**: 
+  1. Retain fixed-width containers and standalone header controls.
+  2. Adopt fluid layout (`.page-container`), far-left branding, far-right User Profile Popover Card (encapsulating details, settings, theme toggle, and sign out), synchronized `lg` breakpoints (0 dead zones), and agency-grade form design system (`.input-field`, `.select-field` with custom SVG chevron, `.checkbox-custom`, `.search-input-field`).
+- **Selected Option**: Option 2.
+- **Reason for Selection**: Expands financial tables across full screen real estate, declutters the header into an intuitive user menu, guarantees navigation availability at all viewport widths, and ensures theme-aligned elegance for all form controls.
+- **Trade-offs**: None; verified with full build, CRUD tests, and Playwright browser recordings.
+- **Risks**: None.
