@@ -93,12 +93,13 @@ export class WhatsAppService {
    */
   public async downloadMedia(mediaId: string): Promise<{ localPath: string; mimeType: string; size: number }> {
     if (!this.apiToken) {
-      // Return placeholder file in dev mode
-      const dummyPath = path.join(this.uploadsDir, `wa_${mediaId}.jpg`);
+      // Return placeholder file in dev mode with UUID
+      const dummyFile = `wa_dev_${crypto.randomUUID()}.jpg`;
+      const dummyPath = path.join(this.uploadsDir, dummyFile);
       if (!fs.existsSync(dummyPath)) {
         fs.writeFileSync(dummyPath, Buffer.from('mock-image-bytes'));
       }
-      return { localPath: `/uploads/wa_${mediaId}.jpg`, mimeType: 'image/jpeg', size: 1024 };
+      return { localPath: `/uploads/${dummyFile}`, mimeType: 'image/jpeg', size: 1024 };
     }
 
     // 1. Get media URL
@@ -128,7 +129,7 @@ export class WhatsAppService {
     const buffer = Buffer.from(arrayBuffer);
 
     const ext = mimeType.includes('pdf') ? '.pdf' : '.jpg';
-    const filename = `wa_${Date.now()}_${mediaId.slice(-6)}${ext}`;
+    const filename = `wa_${crypto.randomUUID()}${ext}`;
     const filePath = path.join(this.uploadsDir, filename);
 
     fs.writeFileSync(filePath, buffer);
@@ -145,7 +146,7 @@ export class WhatsAppService {
    */
   public async sendTextMessage(toPhone: string, text: string): Promise<boolean> {
     if (!this.apiToken || !this.phoneNumberId) {
-      console.log(`[WhatsApp Mock Reply to ${toPhone}]: ${text}`);
+      console.log(`[WhatsApp Mock Reply to +${toPhone}]: ${text}`);
       return true;
     }
 
@@ -177,34 +178,39 @@ export class WhatsAppService {
   public async processIncomingMedia(mediaMsg: WhatsAppMediaMessage): Promise<void> {
     console.log(`📥 Processing WhatsApp bill from +${mediaMsg.from} (Media: ${mediaMsg.mediaId})`);
 
-    // 1. Look up client by sender phone
+    // 1. Look up client by sender phone strictly within verified registered organizations
+    const cleanPhone = mediaMsg.from.replace(/[^0-9]/g, '');
     const client = await prisma.client.findFirst({
-      where: { whatsappPhone: mediaMsg.from },
+      where: {
+        OR: [
+          { whatsappPhone: cleanPhone },
+          { whatsappPhone: `+${cleanPhone}` },
+          { whatsappPhone: cleanPhone.replace(/^91/, '') },
+        ],
+        isActive: true,
+      },
       include: { organization: true },
     });
 
-    // If client is found, use their CA firm; otherwise default to first active organization
-    let organizationId = client?.organizationId;
-    if (!organizationId) {
-      const defaultOrg = await prisma.organization.findFirst();
-      organizationId = defaultOrg?.id || '';
-    }
-
-    if (!organizationId) {
-      console.error('No organization found to assign WhatsApp invoice.');
+    if (!client) {
+      console.warn(`⚠️ [WhatsApp Multi-Tenant Guard] Unknown sender +${mediaMsg.from} is not registered under any active CA organization. Blocking allocation.`);
+      const unregReply = `🙏 Namaste from KhataGenie!\n\nYour WhatsApp phone number (+${mediaMsg.from}) is not registered with any Chartered Accountant practice on our platform.\n\nPlease ask your CA to register your number in their KhataGenie Client Directory to enable automated invoice digitization.`;
+      await this.sendTextMessage(mediaMsg.from, unregReply);
       return;
     }
+
+    const organizationId = client.organizationId;
 
     // 2. Download media file
     const media = await this.downloadMedia(mediaMsg.mediaId);
     const fullDiskPath = path.join(process.cwd(), media.localPath);
 
-    // 3. Create initial Invoice record
+    // 3. Create initial Invoice record scoped strictly to the client's verified organization
     const invoice = await prisma.invoice.create({
       data: {
         organizationId,
-        clientId: client?.id || null,
-        senderPhone: mediaMsg.from,
+        clientId: client.id,
+        senderPhone: cleanPhone,
         whatsappMessageId: mediaMsg.messageId,
         fileUrl: media.localPath,
         fileMimeType: media.mimeType,
@@ -214,9 +220,8 @@ export class WhatsAppService {
     });
 
     // 4. Delegate to background extraction queue
-    extractionQueue.enqueue(invoice.id, fullDiskPath, mediaMsg.from);
+    extractionQueue.enqueue(invoice.id, fullDiskPath, cleanPhone);
   }
 }
 
 export const whatsappService = new WhatsAppService();
-

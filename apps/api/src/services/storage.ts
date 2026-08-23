@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 export interface StorageUploadResult {
   fileUrl: string;
@@ -15,31 +16,37 @@ if (!fs.existsSync(uploadsDir)) {
 
 export const storageService = {
   async saveFile(filename: string, buffer: Buffer, mimeType: string): Promise<StorageUploadResult> {
-    const sanitizedName = `${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-    const filePath = path.join(uploadsDir, sanitizedName);
+    const rawExt = path.extname(filename).toLowerCase();
+    const safeExt = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.heic'].includes(rawExt) ? rawExt : '.jpg';
+    const storageKey = `${crypto.randomUUID()}${safeExt}`;
+    const filePath = path.join(uploadsDir, storageKey);
+    
     await fs.promises.writeFile(filePath, buffer);
 
     return {
-      fileUrl: `/uploads/${sanitizedName}`,
-      storageKey: sanitizedName,
+      fileUrl: `/uploads/${storageKey}`,
+      storageKey,
       sizeBytes: buffer.length,
       mimeType,
     };
   },
 
   async getFileBuffer(storageKey: string): Promise<Buffer> {
-    return fs.promises.readFile(path.join(uploadsDir, storageKey));
+    // Sanitize storageKey against path traversal attacks
+    const safeKey = path.basename(storageKey);
+    return fs.promises.readFile(path.join(uploadsDir, safeKey));
   },
 
   async deleteFile(storageKey: string): Promise<void> {
-    const filePath = path.join(uploadsDir, storageKey);
+    const safeKey = path.basename(storageKey);
+    const filePath = path.join(uploadsDir, safeKey);
     if (fs.existsSync(filePath)) {
       await fs.promises.unlink(filePath);
     }
   },
 
   getPublicUrl(storageKey: string): string {
-    return `/uploads/${storageKey}`;
+    const safeKey = path.basename(storageKey);
+    return `/uploads/${safeKey}`;
   },
 };
-

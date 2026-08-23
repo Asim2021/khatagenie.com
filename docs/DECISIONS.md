@@ -203,3 +203,23 @@ This document tracks all significant architectural and technical decisions made 
 - **Trade-offs**: Requires `@fastify/cookie` and in-flight refresh mutex in API client.
 - **Risks**: None; verified across full monorepo build, automated integration test suite (`test-crud.ts`), and end-to-end browser session tests.
 
+---
+
+## DEC-018: Full-Stack Security Hardening, Multi-Tenant Isolation & Uninterrupted Token Rotation
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Comprehensive security audit revealed potential multi-tenant data leakage in WhatsApp unregistered sender ingestion, lack of rate limiting on sensitive auth endpoints, predictable upload storage filenames, and default secrets exposure risk in production.
+- **Alternatives Considered**: 
+  1. Rely on basic firewall and external CDN rate limiting.
+  2. Implement defense-in-depth full stack hardening:
+     - **Strict WhatsApp Multi-Tenant Isolation**: Block arbitrary allocation for unregistered senders; send guided automated registration prompt.
+     - **Rate Limiting**: Integrated `@fastify/rate-limit` (150 req/min global, exempting internal health probes and Meta webhooks).
+     - **Production Secrets Validation**: Zod `.refine()` blocks server boot in production if default developer secrets are used.
+     - **Cryptographic UUID Storage Keys**: `crypto.randomUUID()` for all uploaded and ingested media with strict path traversal protection.
+     - **CSP & CORS Hardening**: Explicit Helmet Content Security Policy directives and sanitized production error responses.
+     - **Uninterrupted Dual-Token Rotation**: Proactive 14-minute background timer + reactive 401 promise mutex ensuring active users and concurrent API calls are never interrupted or logged out.
+- **Selected Option**: Option 2.
+- **Reason for Selection**: Provides enterprise-grade defense-in-depth, zero cross-tenant contamination, robust brute-force/DoS mitigation, and seamless user experience.
+- **Trade-offs**: Requires `@fastify/rate-limit` and UUID key generation.
+- **Risks**: None; verified across full monorepo build (`npm run build`) and automated integration test suite (`test-crud.ts`).
+

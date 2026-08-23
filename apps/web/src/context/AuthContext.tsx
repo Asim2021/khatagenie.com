@@ -15,6 +15,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// 14 minutes in milliseconds (proactive rotation 1 minute before the 15-min JWT expires)
+const PROACTIVE_REFRESH_INTERVAL_MS = 14 * 60 * 1000;
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
@@ -24,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isFeatureEnabled = useAuthStore((state) => state.isFeatureEnabled);
   const toggleFeatureOverride = useAuthStore((state) => state.toggleFeatureOverride);
 
-  // Silent session boot on app launch / browser refresh via httpOnly refresh cookie
+  // 1. Silent session boot on app launch / browser refresh via httpOnly refresh cookie
   useEffect(() => {
     async function initSession() {
       try {
@@ -43,6 +46,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initSession();
   }, [setAuth, clearAuth]);
+
+  // 2. Proactive background token rotation timer while active
+  useEffect(() => {
+    if (!token) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetchApi<{ token: string; user: AuthUser }>('/auth/refresh', {
+          method: 'POST',
+        });
+        if (res.token && res.user) {
+          setAuth(res.token, res.user);
+        }
+      } catch (err) {
+        console.warn('Proactive background token rotation failed; reactive 401 interceptor will handle next request.', err);
+      }
+    }, PROACTIVE_REFRESH_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [token, setAuth]);
 
   const login = (newToken: string, newUser: AuthUser) => {
     setAuth(newToken, newUser);

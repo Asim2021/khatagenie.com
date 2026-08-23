@@ -1,7 +1,7 @@
 # Project Status: KhataGenie.com
 
-**Last Updated**: 2026-08-23 17:55 IST  
-**Overall Status**: 🟢 Dual-Token Auth (Zustand In-Memory + httpOnly Cookie) Live, Zero Mock Data, Local PostgreSQL Container Connected, Schema Migrations Applied, 100% Verified Full Monorepo Build & Integration Tests (Production-Ready)
+**Last Updated**: 2026-08-23 18:05 IST  
+**Overall Status**: 🟢 Defense-in-Depth Security Hardened (Rate Limiting, Multi-Tenant Isolation, UUID Storage, Production Secret Guards, CSP, Uninterrupted In-Memory Dual-Token Rotation), 100% Verified Full Monorepo Build & Integration Tests (Production-Ready)
 
 ---
 
@@ -9,7 +9,8 @@
 
 | Package / Component | Directory | Status | Notes |
 |---|---|---|---|
-| Enterprise Dual-Token Auth | `apps/api/src/routes/auth.ts`, `apps/web/src/store/authStore.ts`, `apps/web/src/lib/api.ts` | 🟢 Implemented & Verified | 15-min in-memory access token via **Zustand store** (0 tokens in `localStorage`), `httpOnly` refresh cookie (1-day default, 7-day Remember Me), silent boot refresh, 401 retry interceptor |
+| Enterprise Dual-Token Auth | `apps/api/src/routes/auth.ts`, `apps/web/src/store/authStore.ts`, `apps/web/src/lib/api.ts` | 🟢 Implemented & Verified | 15-min in-memory access token via **Zustand store** (0 tokens in `localStorage`), `httpOnly` refresh cookie (1-day default, 7-day Remember Me), silent boot refresh, proactive 14-min rotation timer, 401 promise mutex retry interceptor |
+| Full-Stack Security Hardening | `apps/api/src/server.ts`, `apps/api/src/services/*`, `apps/api/src/lib/env.ts` | 🟢 Hardened & Verified | `@fastify/rate-limit` (150 req/min), Helmet CSP & nosniff, Zod production secret guards, `crypto.randomUUID()` file keys with path traversal protection, WhatsApp strict multi-tenant isolation |
 | PostgreSQL Database & Migrations | `apps/api/prisma`, `apps/api/src/lib/prisma.ts` | 🟢 Connected & Verified | Running on local Docker container `localhost:5432` (`root` / `Asim@123`), initial migration `20260823000000_init` applied, seeded with 1 Admin & 1 Staff user, zero mock data |
 | GSTR-2B Recon (Zero Hardcoded Data) | `apps/web/src/pages/Gstr2bReconPage.tsx`, `apps/api/src/routes/reconciliation.ts` | 🟢 Implemented & Verified | Clean 3-step upload-first empty state; sample demo routes removed; reconciles live uploaded GST Portal JSON against database invoices |
 | Dynamic WhatsApp Health Probe | `apps/api/src/routes/whatsapp.ts`, `apps/web/src/hooks/useWhatsAppStatus.ts` | 🟢 Implemented & Verified | `GET /api/v1/whatsapp/status` live probe dynamically driving 3-state UI: 🟢 Connected, 🟡 Setup Required, 🔴 Disconnected with hover diagnostics |
@@ -27,7 +28,7 @@
 | Superadmin Feature Flags | `apps/web/src/pages/AdminFeatureFlags.tsx` | 🟢 Implemented & Verified | Double-bezel list container with responsive toggle switches and category filters |
 | Light & Dark Theme System | `apps/web/src/context/ThemeContext.tsx` | 🟢 Implemented & Verified | Light, Dark, System modes with zero-FOUC head script & high-contrast tokens |
 | Shared Types & Flags | `packages/types` | 🟢 Implemented & Verified | 14 Feature Flags declared with baseline `false` defaults, `LoginRequestSchema` with `rememberMe` |
-| Backend API Server | `apps/api` | 🟢 Implemented & Verified | Fastify 4.29 + `@fastify/cookie` + JWT + Helmet + CORS + Uploads + /ready probe + 100% passed CRUD integration suite (`test-crud.ts`) |
+| Backend API Server | `apps/api` | 🟢 Implemented & Verified | Fastify 4.29 + `@fastify/cookie` + `@fastify/rate-limit` + JWT + Helmet + CORS + Uploads + /ready probe + 100% passed CRUD integration suite (`test-crud.ts`) |
 
 ---
 

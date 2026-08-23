@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
@@ -54,7 +55,33 @@ async function buildServer() {
   });
 
   await server.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'blob:', '*'],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+      },
+    },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+  });
+
+  await server.register(rateLimit, {
+    max: 150,
+    timeWindow: '1 minute',
+    allowList: (req) => {
+      // Exclude internal health probes and Meta WhatsApp webhooks from rate limiting
+      return (
+        req.url === '/health' ||
+        req.url === '/ready' ||
+        req.url.startsWith('/api/v1/whatsapp/webhook')
+      );
+    },
+    errorResponseBuilder: () => ({
+      statusCode: 429,
+      error: 'TOO_MANY_REQUESTS',
+      message: 'Rate limit exceeded. Please retry after a moment.',
+    }),
   });
 
   await server.register(cookie, {
@@ -117,12 +144,18 @@ async function buildServer() {
   await server.register(whatsappRoutes, { prefix: '/api/v1/whatsapp' });
   await server.register(reconciliationRoutes, { prefix: '/api/v1/reconciliation' });
 
-  // 4. Global Error Handler
+  // 4. Global Error Handler (Sanitizes stack traces in production)
   server.setErrorHandler((error, request, reply) => {
     request.log.error(error);
-    reply.status(error.statusCode || 500).send({
+    const statusCode = error.statusCode || 500;
+    const isProd = env.NODE_ENV === 'production';
+
+    reply.status(statusCode).send({
       error: error.name || 'INTERNAL_SERVER_ERROR',
-      message: error.message || 'An unexpected error occurred.',
+      message:
+        statusCode >= 500 && isProd
+          ? 'An internal server error occurred. Please contact support.'
+          : error.message || 'An unexpected error occurred.',
     });
   });
 
@@ -162,4 +195,3 @@ if (require.main === module) {
 }
 
 export { buildServer };
-

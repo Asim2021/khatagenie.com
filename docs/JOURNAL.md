@@ -277,6 +277,15 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
     - Executed `npm run build` (100% Passed across monorepo).
     - Executed Playwright browser verification recording `dual_token_auth_verified_1787487567059.webp` verifying login, in-memory Zustand auth, clean GSTR-2B empty state, F5 page reload session persistence, and logout route guard.
 
+  - Implemented Phase 18: Full-Stack Security Hardening, Multi-Tenant Isolation & Uninterrupted Token Rotation:
+    - Fixed WhatsApp Multi-Tenant Isolation (`SEC-01`): Blocked invoice allocation to default organization when unknown senders text the bot; dispatches automated WhatsApp registration prompt.
+    - Added Fastify Rate Limiting (`SEC-02`): Installed `@fastify/rate-limit@8` (150 req/min global throttle, exempting Meta webhooks and internal health checks).
+    - Production Secret Guard (`SEC-03`): Added Zod refinement in `apps/api/src/lib/env.ts` blocking server boot in production if default secrets are used.
+    - Cryptographic UUID Storage Keys (`SEC-04`): Migrated file naming in `apps/api/src/services/storage.ts` and `whatsapp.ts` to `crypto.randomUUID()` with strict path traversal validation.
+    - CSP & Error Sanitization (`SEC-05`): Configured Helmet Content Security Policy directives and masked 500 error messages in production.
+    - Uninterrupted Dual-Token Rotation: Added proactive 14-minute background rotation timer in `AuthContext.tsx` combined with in-flight promise mutex in `api.ts` so active users are never interrupted or logged out during token renewal.
+    - Executed `npx tsx apps/api/test-crud.ts` (100% Passed) and `npm run build` (100% Passed across all monorepo packages).
+
 ### Next Actions
 - Connect live Meta WhatsApp Cloud API credentials in `.env` for physical phone message testing.
 - Deploy to Railway production environment.
