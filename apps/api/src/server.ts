@@ -89,6 +89,21 @@ async function buildServer() {
     parseOptions: {},
   });
 
+  // Allow empty body with Content-Type: application/json gracefully
+  server.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    const raw = typeof body === 'string' ? body : body.toString('utf8');
+    if (!raw || raw.trim().length === 0) {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(raw));
+    } catch (err: any) {
+      err.statusCode = 400;
+      done(err, undefined);
+    }
+  });
+
   await server.register(jwt, {
     secret: env.JWT_SECRET,
   });

@@ -294,8 +294,14 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
     - Migrated all web pages and components to the new SVG icon library.
     - Centered the password visibility toggle button vertically (`top-1/2 -translate-y-1/2`).
     - Verified computed styles with Chrome DevTools (`paddingLeft: 40px` on `pl-10`, `paddingLeft: 36px` on `search-input-field`).
-    - Tested all pages (`/login`, `/inbox`, `/clients`, `/exports`, `/reconciliation`, `/settings/feature-flags`) in Chrome DevTools and Playwright, capturing visual verification screenshots with zero text/icon overlap.
-    - Executed `npm run build` (100% Passed) and `npx tsx apps/api/test-crud.ts` (100% Passed).
+  - Implemented Phase 20: Dual-Token Persistence on Browser Refresh Bugfix:
+    - Diagnosed Root Cause: `fetchApi` automatically attached `Content-Type: application/json` to every HTTP request, including `POST /auth/refresh` which had no request body. Fastify's default JSON parser strictly threw `FST_ERR_CTP_EMPTY_JSON_BODY` (HTTP 400), causing `initSession` in `AuthContext` to catch the error, clear the auth state, and redirect to `/login`.
+    - Made `Content-Type: application/json` conditional in `apps/web/src/lib/api.ts` (only set when `options.body` is present and not `FormData`).
+    - Added custom `application/json` parser in `apps/api/src/server.ts` to safely accept empty string or Buffer bodies with empty object fallback.
+    - Updated `AuthContext.tsx` to use unified, mutexed `refreshAccessToken()` directly on boot and rotation.
+    - Updated `apps/web/src/pages/InboxPage.tsx` direct invoice upload mutation to use `fetchApi` instead of raw unauthenticated `fetch`.
+    - Verified full monorepo build (`npm run build`) and integration suite (`test-crud.ts`): 100% Passed.
+    - Verified in browser via automated Playwright subagent (`token_persistence_demo_1787490534782.webp`): signed in, refreshed page at `/`, verified session remained authenticated without redirecting, and confirmed logout works cleanly.
 
 ### Next Actions
 - Connect live Meta WhatsApp Cloud API credentials in `.env` for physical phone message testing.

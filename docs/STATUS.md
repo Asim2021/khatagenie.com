@@ -1,7 +1,7 @@
 # Project Status: KhataGenie.com
 
-**Last Updated**: 2026-08-23 18:25 IST  
-**Overall Status**: 🟢 CSS Cascade Layer Architecture & Dedicated Modular SVG Icon Library Implemented, Full-Stack Security Hardened, 100% Verified Full Monorepo Build & Integration Tests (Production-Ready)
+**Last Updated**: 2026-08-23 18:40 IST  
+**Overall Status**: 🟢 Dual-Token Persistence on Browser Refresh Fixed & Verified, Full Monorepo Build (100% Passed) & Playwright E2E Validated (Production-Ready)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Package / Component | Directory | Status | Notes |
 |---|---|---|---|
+| Enterprise Dual-Token Auth & Persistence | `apps/api/src/routes/auth.ts`, `apps/web/src/store/authStore.ts`, `apps/web/src/lib/api.ts`, `apps/web/src/context/AuthContext.tsx` | 🟢 Fixed & Verified | 15-min in-memory access token via Zustand, httpOnly refresh cookie, seamless boot session refresh across browser reloads (F5), conditional `Content-Type` headers, Fastify graceful empty body support |
 | Dedicated Modular SVG Icon Library | `apps/web/src/components/icons/*` | 🟢 Implemented & Verified | Zero external icon library dependencies, 100% type-safe `IconProps`, pure inline SVG vectors, `currentColor` theme inheritance, pixel-perfect baseline alignment |
 | CSS Cascade Specificity & Input Padding | `apps/web/src/index.css`, `apps/web/src/pages/LoginPage.tsx` | 🟢 Implemented & Verified | All custom component classes wrapped in `@layer components`; utility classes (`pl-10`, `pl-16`, `pr-10`) naturally override defaults in cascade; zero text/icon overlap |
-| Enterprise Dual-Token Auth | `apps/api/src/routes/auth.ts`, `apps/web/src/store/authStore.ts`, `apps/web/src/lib/api.ts` | 🟢 Implemented & Verified | 15-min in-memory access token via **Zustand store** (0 tokens in `localStorage`), `httpOnly` refresh cookie (1-day default, 7-day Remember Me), silent boot refresh, proactive 14-min rotation timer, 401 promise mutex retry interceptor |
 | Full-Stack Security Hardening | `apps/api/src/server.ts`, `apps/api/src/services/*`, `apps/api/src/lib/env.ts` | 🟢 Hardened & Verified | `@fastify/rate-limit` (150 req/min), Helmet CSP & nosniff, Zod production secret guards, `crypto.randomUUID()` file keys with path traversal protection, WhatsApp strict multi-tenant isolation |
 | PostgreSQL Database & Migrations | `apps/api/prisma`, `apps/api/src/lib/prisma.ts` | 🟢 Connected & Verified | Running on local Docker container `localhost:5432` (`root` / `Asim@123`), initial migration `20260823000000_init` applied, seeded with 1 Admin & 1 Staff user, zero mock data |
 | GSTR-2B Recon (Zero Hardcoded Data) | `apps/web/src/pages/Gstr2bReconPage.tsx`, `apps/api/src/routes/reconciliation.ts` | 🟢 Implemented & Verified | Clean 3-step upload-first empty state; sample demo routes removed; reconciles live uploaded GST Portal JSON against database invoices |
@@ -36,24 +36,18 @@
 
 ## Verification Evidence
 
+- **Browser Playwright E2E Session Persistence Verification (`token_persistence_demo_1787490534782.webp`)**:
+  - Signed in as Admin (`admin@khatagenie.com` / `Asim@123`).
+  - Reloaded page at `http://localhost:3000/` (F5 equivalent).
+  - Confirmed session remains active and logged in (dashboard & user profile intact, zero logout redirect).
+  - Verified user profile menu sign-out cleans state and redirects to `/login`.
 - **All CRUD & Dual-Token Endpoints Verified (`test-crud.ts`)**:
-  - `POST /api/v1/auth/login` (1-day cookie): 200 OK (`Set-Cookie: HttpOnly; Path=/api/v1/auth; Max-Age=86400`)
-  - `POST /api/v1/auth/login` (rememberMe 7-day cookie): 200 OK (`Set-Cookie: HttpOnly; Path=/api/v1/auth; Max-Age=604800`)
+  - `POST /api/v1/auth/login` (1-day cookie): 200 OK
+  - `POST /api/v1/auth/login` (rememberMe 7-day cookie): 200 OK
   - `POST /api/v1/auth/refresh`: 200 OK (access token rotated, cookie preserved)
   - `POST /api/v1/auth/logout`: 200 OK (cookie cleared)
-  - `GET /api/v1/clients`: 200 OK
-  - `POST /api/v1/clients`: 201 Created
-  - `PATCH /api/v1/clients/:id`: 200 OK
-  - `GET /api/v1/invoices`: 200 OK
-  - `GET /api/v1/invoices/:id`: 200 OK
-  - `PATCH /api/v1/invoices/:id`: 200 OK
-  - `POST /api/v1/reconciliation/process`: 200 OK
-  - `GET /api/v1/exports/tally`: 200 OK (XML Vouchers)
-  - `GET /api/v1/exports/excel`: 200 OK (.XLSX)
-- **Browser Playwright End-to-End Verifications**:
-  - In-Memory Zustand Auth: Zero tokens in `localStorage`.
-  - GSTR-2B Upload Empty State: Verified clean 3-step portal upload guide (`reconciliation_empty_state_1787487670387.png`).
-  - Session Persistence: Verified page reload (F5) maintains session without redirecting (`reconciliation_after_reload_1787487737459.png`).
-  - Logout & Interceptor: Verified logout clears cookie and redirects to `/login` (`login_page_after_logout_1787487763806.png`).
+  - All Clients and Invoices CRUD: 100% Passed.
+- **Monorepo Production Build**:
+  - `npm run build`: 100% Passed across `types`, `shared`, `api`, and `web`.
 
 

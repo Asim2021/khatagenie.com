@@ -51,7 +51,7 @@ export const InboxPage: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('senderPhone', '919811000000');
-      return await fetch('/api/v1/invoices/upload', {
+      return await fetchApi('/invoices/upload', {
         method: 'POST',
         body: formData,
       });

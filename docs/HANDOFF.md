@@ -1,33 +1,28 @@
 # Session Handoff: KhataGenie.com
 
-**Current Objective**: CSS Cascade Specificity Fix, Form Input Architecture, Dedicated Native SVG Icons Library, Full Monorepo Build & Integration Tests.
+**Current Objective**: Dual-Token Persistence Bugfix, Full Monorepo Build & Integration Tests.
 
 **Current State**:
 - Full monorepo stack is 100% built, tested, and verified across all 4 packages (`types`, `shared`, `api`, `web`).
-- **CSS Cascade Layer Fix (`Phase 19`)**:
-  - Wrapped all custom component classes in `apps/web/src/index.css` inside `@layer components { ... }`.
-  - Utility classes like `pl-10` (`40px`), `pl-16` (`64px`), `pr-10` (`40px`) now correctly override base component padding without specificity conflicts.
-  - Zero text and icon overlap on all input fields and search bars.
-  - Password visibility toggle button centered vertically via `top-1/2 -translate-y-1/2`.
-- **Dedicated Modular SVG Icon Library**:
-  - Centralized in `apps/web/src/components/icons/index.tsx` and `types.ts`.
-  - Pure typed SVG components with `currentColor` theme inheritance, zero external icon library runtime overhead.
-  - All web pages and components migrated to use `./icons` / `../components/icons`.
-- **Top-Aligned Form Labels Policy**:
-  - Reaffirmed high-contrast top-aligned static labels over floating labels for fast saccadic scanning, zero autofill conflicts, and seamless icon/prefix support.
+- **Token Persistence on Browser Refresh (`Phase 20`)**:
+  - Diagnosed Root Cause: `fetchApi` previously attached `Content-Type: application/json` on all requests including bodyless `POST /auth/refresh`. Fastify returned `400 FST_ERR_CTP_EMPTY_JSON_BODY`, failing boot session initialization on page reload.
+  - Made `Content-Type: application/json` conditional in `apps/web/src/lib/api.ts` (only when `body` is present).
+  - Added empty-body fallback to Fastify JSON content type parser in `apps/api/src/server.ts`.
+  - Bound `AuthContext.tsx` directly to the shared, mutexed `refreshAccessToken()`.
+  - Migrated `InboxPage.tsx` direct invoice upload mutation to `fetchApi`.
 - **Enterprise Dual-Token Authentication**:
   - Access Token: 15-minute rotation, in-memory Zustand store (`useAuthStore`), 0 tokens in `localStorage`.
   - Refresh Token: `httpOnly`, `Secure`, `SameSite=Lax`, `Path=/api/v1/auth` cookie.
 - **Verification Evidence**:
   - `npx tsx apps/api/test-crud.ts`: 100% Passed.
   - `npm run build`: 100% Passed (all monorepo workspaces).
-  - Chrome DevTools & Playwright visual verifications across `/login`, `/inbox`, `/clients`, `/exports`, `/reconciliation`, `/settings/feature-flags`.
+  - Automated Browser Playwright verification: session persists across page reloads (F5) without redirecting to `/login`.
 
 **Recently Completed**:
-- Wrapped `index.css` component classes in `@layer components`.
-- Created dedicated SVG icon components in `apps/web/src/components/icons/`.
-- Updated all 11 web files to import icons from the local SVG library.
-- Updated `DECISIONS.md` (`DEC-019`), `STATUS.md`, `JOURNAL.md`, and `HANDOFF.md`.
+- Fixed `fetchApi` header attachments for bodyless requests in `apps/web/src/lib/api.ts`.
+- Added empty-body handler in `apps/api/src/server.ts`.
+- Simplified `AuthContext.tsx` session boot and rotation.
+- Updated `STATUS.md`, `JOURNAL.md`, and `HANDOFF.md`.
 
 **Open Problems**:
 - None.

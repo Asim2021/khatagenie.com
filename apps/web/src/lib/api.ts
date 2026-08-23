@@ -15,7 +15,7 @@ export class ApiError extends Error {
 // In-flight refresh promise to prevent duplicate concurrent refresh requests
 let refreshPromise: Promise<string | null> | null = null;
 
-async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
   if (refreshPromise) {
     return refreshPromise;
   }
@@ -24,7 +24,6 @@ async function refreshAccessToken(): Promise<string | null> {
     try {
       const res = await fetch(`${API_BASE}/auth/refresh`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
 
@@ -55,15 +54,16 @@ async function refreshAccessToken(): Promise<string | null> {
 export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   let token = useAuthStore.getState().token;
 
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+  const headers: Record<string, string> = {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers || {}),
+    ...((options.headers as Record<string, string>) || {}),
   };
 
-  // If sending FormData, delete Content-Type to allow browser to set multipart boundary
-  if (options.body instanceof FormData) {
-    delete (headers as any)['Content-Type'];
+  // Only attach Content-Type: application/json if there is a body and it is not FormData
+  if (options.body && !(options.body instanceof FormData)) {
+    if (!headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
   }
 
   let res = await fetch(`${API_BASE}${endpoint}`, {
@@ -81,14 +81,10 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
     const newToken = await refreshAccessToken();
     if (newToken) {
       // Retry original request with fresh access token
-      const retryHeaders: HeadersInit = {
-        'Content-Type': 'application/json',
+      const retryHeaders: Record<string, string> = {
+        ...headers,
         Authorization: `Bearer ${newToken}`,
-        ...(options.headers || {}),
       };
-      if (options.body instanceof FormData) {
-        delete (retryHeaders as any)['Content-Type'];
-      }
 
       res = await fetch(`${API_BASE}${endpoint}`, {
         ...options,

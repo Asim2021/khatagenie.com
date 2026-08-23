@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { AuthUser, FeatureFlagKey } from '@khatagenie/types';
 import { useAuthStore } from '../store/authStore';
-import { fetchApi } from '../lib/api';
+import { fetchApi, refreshAccessToken } from '../lib/api';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -29,43 +29,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // 1. Silent session boot on app launch / browser refresh via httpOnly refresh cookie
   useEffect(() => {
-    async function initSession() {
-      try {
-        const res = await fetchApi<{ token: string; user: AuthUser }>('/auth/refresh', {
-          method: 'POST',
-        });
-        if (res.token && res.user) {
-          setAuth(res.token, res.user);
-        } else {
-          clearAuth();
-        }
-      } catch {
-        clearAuth();
-      }
-    }
-
-    initSession();
-  }, [setAuth, clearAuth]);
+    refreshAccessToken();
+  }, []);
 
   // 2. Proactive background token rotation timer while active
   useEffect(() => {
     if (!token) return;
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetchApi<{ token: string; user: AuthUser }>('/auth/refresh', {
-          method: 'POST',
-        });
-        if (res.token && res.user) {
-          setAuth(res.token, res.user);
-        }
-      } catch (err) {
+    const interval = setInterval(() => {
+      refreshAccessToken().catch((err) => {
         console.warn('Proactive background token rotation failed; reactive 401 interceptor will handle next request.', err);
-      }
+      });
     }, PROACTIVE_REFRESH_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [token, setAuth]);
+  }, [token]);
 
   const login = (newToken: string, newUser: AuthUser) => {
     setAuth(newToken, newUser);
