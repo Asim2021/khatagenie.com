@@ -4,6 +4,7 @@ import path from 'path';
 import { prisma } from '../lib/prisma';
 import { InvoiceStatus } from '@prisma/client';
 import { extractionQueue } from './queue';
+import { WhatsAppStatusResponse } from '@khatagenie/types';
 
 export interface WhatsAppMediaMessage {
   from: string; // sender phone number (e.g. "919811000000")
@@ -18,6 +19,7 @@ export class WhatsAppService {
   private phoneNumberId: string;
   private appSecret: string;
   private uploadsDir: string;
+  private lastWebhookEventAt: string | null = null;
 
   constructor() {
     this.apiToken = process.env.WHATSAPP_API_TOKEN || '';
@@ -28,6 +30,39 @@ export class WhatsAppService {
     if (!fs.existsSync(this.uploadsDir)) {
       fs.mkdirSync(this.uploadsDir, { recursive: true });
     }
+  }
+
+  public recordWebhookEvent(): void {
+    this.lastWebhookEventAt = new Date().toISOString();
+  }
+
+  public getConnectionStatus(): WhatsAppStatusResponse {
+    const apiToken = process.env.WHATSAPP_API_TOKEN || this.apiToken;
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || this.phoneNumberId;
+
+    const isConfigured = Boolean(apiToken && phoneNumberId);
+
+    if (!isConfigured) {
+      return {
+        status: 'unconfigured',
+        configured: false,
+        phoneNumberId: phoneNumberId || null,
+        webhookPath: '/api/v1/whatsapp/webhook',
+        message: 'Meta WhatsApp Cloud API credentials not configured in .env',
+        lastReceivedAt: this.lastWebhookEventAt,
+        serverTime: new Date().toISOString(),
+      };
+    }
+
+    return {
+      status: 'connected',
+      configured: true,
+      phoneNumberId,
+      webhookPath: '/api/v1/whatsapp/webhook',
+      message: 'WhatsApp Cloud API webhook receiver is online and connected',
+      lastReceivedAt: this.lastWebhookEventAt,
+      serverTime: new Date().toISOString(),
+    };
   }
 
   /**

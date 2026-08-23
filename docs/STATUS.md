@@ -1,7 +1,7 @@
 # Project Status: KhataGenie.com
 
-**Last Updated**: 2026-08-23 16:10 IST  
-**Overall Status**: 🟢 Fluid Full-Width Layout, Redesigned Header with Popover Card, Zero-Dead-Zone Breakpoints, Theme Form UI System & 100% Verified CRUD (Production-Ready)
+**Last Updated**: 2026-08-23 16:34 IST  
+**Overall Status**: 🟢 Dynamic Live WhatsApp Connection Health Probe, Fluid Full-Width Layout, Header Popover Card, Zero-Dead-Zone Breakpoints & 100% Verified CRUD (Production-Ready)
 
 ---
 
@@ -9,6 +9,7 @@
 
 | Package / Component | Directory | Status | Notes |
 |---|---|---|---|
+| Dynamic WhatsApp Health Probe | `apps/api/src/routes/whatsapp.ts`, `apps/web/src/hooks/useWhatsAppStatus.ts` | 🟢 Implemented & Verified | `GET /api/v1/whatsapp/status` live probe dynamically driving 3-state UI: 🟢 Connected, 🟡 Setup Required, 🔴 Disconnected with hover diagnostics |
 | Fluid Full-Width Layout | `apps/web/src/index.css`, `apps/web/src/pages/*` | 🟢 Implemented & Verified | `.page-container` (`max-w-[1920px] px-4` to `2xl:px-12`) enabling expansive multi-column financial dashboards across 1080p, 1440p, & 4K |
 | Header Navigation & Popover Card | `apps/web/src/components/Navbar.tsx` | 🟢 Implemented & Verified | Far-left branding, centered nav tabs, far-right User Profile trigger + floating Popover Card (details, feature flags link, segmented theme switch, sign out) |
 | Responsive Breakpoint Synchronization | `apps/web/src/components/Navbar.tsx` | 🟢 Implemented & Verified | Synchronized `lg:flex` / `lg:hidden` breakpoints, completely eliminating the previous 640px–767px navigation dead zone |

@@ -3,4 +3,6 @@ export * from './invoice';
 export * from './client';
 export * from './auth';
 export * from './reconciliation';
+export * from './whatsapp';
+
 

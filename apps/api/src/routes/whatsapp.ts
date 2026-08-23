@@ -4,7 +4,13 @@ import { whatsappService } from '../services/whatsapp';
 export async function whatsappRoutes(server: FastifyInstance) {
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || 'khatagenie_verify_token_2026';
 
-  // 1. GET /api/v1/whatsapp/webhook (Meta Webhook Verification)
+  // 1. GET /api/v1/whatsapp/status (Live Connection Health Probe)
+  server.get('/status', async (request, reply) => {
+    const status = whatsappService.getConnectionStatus();
+    return reply.status(200).send(status);
+  });
+
+  // 2. GET /api/v1/whatsapp/webhook (Meta Webhook Verification)
   server.get('/webhook', async (request, reply) => {
     const query = request.query as {
       'hub.mode'?: string;
@@ -24,7 +30,7 @@ export async function whatsappRoutes(server: FastifyInstance) {
     return reply.status(403).send('Forbidden: Token mismatch');
   });
 
-  // 2. POST /api/v1/whatsapp/webhook (Meta Incoming Event Receiver)
+  // 3. POST /api/v1/whatsapp/webhook (Meta Incoming Event Receiver)
   server.post('/webhook', async (request, reply) => {
     const signature = request.headers['x-hub-signature-256'] as string | undefined;
     const rawBody = typeof request.body === 'string' ? request.body : JSON.stringify(request.body || {});
@@ -37,6 +43,9 @@ export async function whatsappRoutes(server: FastifyInstance) {
         message: 'Meta webhook HMAC-SHA256 signature verification failed.',
       });
     }
+
+    // Record live event timestamp
+    whatsappService.recordWebhookEvent();
 
     const body = request.body as any;
 

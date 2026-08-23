@@ -163,10 +163,21 @@ async function runCrudVerification() {
     url: '/api/v1/exports/excel',
     headers: authHeaders,
   });
-  console.log(`[EXPORTS - EXCEL] GET /api/v1/exports/excel -> Status: ${excelExportRes.statusCode}, Content-Type: ${excelExportRes.headers['content-type']}`);
+  console.log(`[EXPORTS - EXCEL] GET /api/v1/exports/excel -> Status: ${excelExportRes.statusCode}, Content-Type: ${excelExportRes.headers['content-type']}\n`);
   if (excelExportRes.statusCode !== 200) throw new Error('Excel export failed');
 
-  console.log('\n🎉 ALL CRUD & EXPORT ENDPOINTS FULLY VERIFIED AND PASSING (100%)!');
+  // 6. WHATSAPP STATUS PROBE
+  console.log('--- 6. Testing WhatsApp Live Connection Health Probe ---');
+  const waStatusRes = await app.inject({
+    method: 'GET',
+    url: '/api/v1/whatsapp/status',
+  });
+  console.log(`[WHATSAPP - STATUS] GET /api/v1/whatsapp/status -> Status: ${waStatusRes.statusCode}`);
+  if (waStatusRes.statusCode !== 200) throw new Error('WhatsApp status probe failed');
+  const waStatusData = JSON.parse(waStatusRes.body);
+  console.log(`[WHATSAPP - STATUS] Result: status="${waStatusData.status}", configured=${waStatusData.configured}, message="${waStatusData.message}"`);
+
+  console.log('\n🎉 ALL CRUD, EXPORT & WHATSAPP HEALTH ENDPOINTS FULLY VERIFIED AND PASSING (100%)!');
 }
 
 runCrudVerification().catch((err) => {

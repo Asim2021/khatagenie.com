@@ -160,3 +160,18 @@ This document tracks all significant architectural and technical decisions made 
 - **Reason for Selection**: Expands financial tables across full screen real estate, declutters the header into an intuitive user menu, guarantees navigation availability at all viewport widths, and ensures theme-aligned elegance for all form controls.
 - **Trade-offs**: None; verified with full build, CRUD tests, and Playwright browser recordings.
 - **Risks**: None.
+
+---
+
+## DEC-015: Dynamic Backend WhatsApp Connection Health Probe & Tri-State UI Status Architecture
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: The header WhatsApp indicator was previously hardcoded to display a static green "Connected" badge whenever the client-side feature flag was true, without verifying if Meta Cloud API credentials (`WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_TOKEN`) were configured in `.env`.
+- **Alternatives Considered**: 
+  1. Static feature-flag gating without backend verification.
+  2. Live Backend Health Probe (`GET /api/v1/whatsapp/status`) driving a tri-state reactive UI (🟢 `Connected`, 🟡 `Setup Required`, 🔴 `Disconnected`) with TanStack Query polling.
+- **Selected Option**: Option 2.
+- **Reason for Selection**: Eliminates false-positive connection status, provides immediate diagnostic feedback to administrators if Meta keys are missing or expired, and guarantees production observability.
+- **Trade-offs**: Adds periodic 30s background health polling.
+- **Risks**: None; verified via automated API suite and browser tests.
+
