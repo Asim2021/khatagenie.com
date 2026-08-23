@@ -39,9 +39,14 @@ export const AdminFeatureFlags: React.FC = () => {
           </p>
         </div>
 
-        <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 self-start sm:self-auto shrink-0">
-          Tenant: {user?.organizationName || 'Bansal & Associates CA'}
-        </span>
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+          <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 uppercase">
+            Role: {user?.role || 'CA_ADMIN'}
+          </span>
+          <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+            Tenant: {user?.organizationName || 'Bansal & Associates CA'}
+          </span>
+        </div>
       </div>
 
       {/* Info Banner with Double-Bezel */}

@@ -1,28 +1,30 @@
 # Session Handoff: KhataGenie.com
 
-**Current Objective**: Dual-Token Persistence Bugfix, Full Monorepo Build & Integration Tests.
+**Current Objective**: RBAC Feature Flags Gating, Dual-Token Persistence, Full Monorepo Build & Integration Tests.
 
 **Current State**:
 - Full monorepo stack is 100% built, tested, and verified across all 4 packages (`types`, `shared`, `api`, `web`).
+- **RBAC Feature Flags Gating (`Phase 21`)**:
+  - `ProtectedRoute.tsx`: Added `allowedRoles?: (UserRole | string)[]` prop. Redirects unauthorized roles to `/`.
+  - `App.tsx`: Protected `/settings/feature-flags` with `allowedRoles={[UserRole.SUPERADMIN, UserRole.CA_ADMIN]}`.
+  - `Navbar.tsx`: Conditioned "Feature Flags Settings" link in desktop profile popover and mobile drawer on `isAdmin`.
+  - `AdminFeatureFlags.tsx`: Displays active user role badge (`ROLE: {user.role}`) in header banner.
+  - Verified via Playwright automated browser test (`rbac_verification_demo_1787510242610.webp`).
 - **Token Persistence on Browser Refresh (`Phase 20`)**:
-  - Diagnosed Root Cause: `fetchApi` previously attached `Content-Type: application/json` on all requests including bodyless `POST /auth/refresh`. Fastify returned `400 FST_ERR_CTP_EMPTY_JSON_BODY`, failing boot session initialization on page reload.
-  - Made `Content-Type: application/json` conditional in `apps/web/src/lib/api.ts` (only when `body` is present).
-  - Added empty-body fallback to Fastify JSON content type parser in `apps/api/src/server.ts`.
-  - Bound `AuthContext.tsx` directly to the shared, mutexed `refreshAccessToken()`.
-  - Migrated `InboxPage.tsx` direct invoice upload mutation to `fetchApi`.
+  - `fetchApi`: Made `Content-Type: application/json` conditional (only when request body is present).
+  - Fastify server: Added empty-body fallback for JSON content type parser.
+  - `AuthContext.tsx`: Unified with mutexed `refreshAccessToken()`.
 - **Enterprise Dual-Token Authentication**:
   - Access Token: 15-minute rotation, in-memory Zustand store (`useAuthStore`), 0 tokens in `localStorage`.
   - Refresh Token: `httpOnly`, `Secure`, `SameSite=Lax`, `Path=/api/v1/auth` cookie.
 - **Verification Evidence**:
-  - `npx tsx apps/api/test-crud.ts`: 100% Passed.
   - `npm run build`: 100% Passed (all monorepo workspaces).
-  - Automated Browser Playwright verification: session persists across page reloads (F5) without redirecting to `/login`.
+  - Automated Browser Playwright E2E verification: RBAC access control & session persistence verified.
 
 **Recently Completed**:
-- Fixed `fetchApi` header attachments for bodyless requests in `apps/web/src/lib/api.ts`.
-- Added empty-body handler in `apps/api/src/server.ts`.
-- Simplified `AuthContext.tsx` session boot and rotation.
-- Updated `STATUS.md`, `JOURNAL.md`, and `HANDOFF.md`.
+- Implemented RBAC on `/settings/feature-flags` and header navigation menus.
+- Verified Staff blocking and Admin access in browser.
+- Updated `STATUS.md`, `JOURNAL.md`, `walkthrough.md`, and `HANDOFF.md`.
 
 **Open Problems**:
 - None.

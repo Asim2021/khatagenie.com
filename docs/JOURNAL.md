@@ -303,6 +303,16 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
     - Verified full monorepo build (`npm run build`) and integration suite (`test-crud.ts`): 100% Passed.
     - Verified in browser via automated Playwright subagent (`token_persistence_demo_1787490534782.webp`): signed in, refreshed page at `/`, verified session remained authenticated without redirecting, and confirmed logout works cleanly.
 
+  - Implemented Phase 21: Role-Based Access Control (RBAC) on Feature Flags Settings:
+    - Added `allowedRoles?: (UserRole | string)[]` prop to `ProtectedRoute.tsx` with automated redirection to `/` for unauthorized roles.
+    - Wrapped `/settings/feature-flags` route in `App.tsx` with `allowedRoles={[UserRole.SUPERADMIN, UserRole.CA_ADMIN]}`.
+    - Updated `Navbar.tsx` to conditionally render the "Feature Flags Settings" link in the user profile popover card and mobile drawer only for admins (`isAdmin = user?.role === UserRole.SUPERADMIN || user?.role === UserRole.CA_ADMIN`).
+    - Added active role badge (`ROLE: {user?.role}`) to `AdminFeatureFlags.tsx` header.
+    - Verified full monorepo build (`npm run build`): 100% Passed across all 4 packages.
+    - Verified in browser via automated Playwright subagent (`rbac_verification_demo_1787510242610.webp`):
+      - End User (`CA_STAFF`): Link hidden from menu; direct URL `/settings/feature-flags` blocked and redirected to `/`.
+      - Admin User (`CA_ADMIN`): Link visible; full access to feature flags toggle panel.
+
 ### Next Actions
 - Connect live Meta WhatsApp Cloud API credentials in `.env` for physical phone message testing.
 - Deploy to Railway production environment.

@@ -13,6 +13,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { UserRole } from '@khatagenie/types';
 
 function AppLayout() {
   const location = useLocation();
@@ -66,7 +67,7 @@ function AppLayout() {
           <Route
             path="/settings/feature-flags"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={[UserRole.SUPERADMIN, UserRole.CA_ADMIN]}>
                 <AdminFeatureFlags />
               </ProtectedRoute>
             }

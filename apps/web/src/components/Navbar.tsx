@@ -18,7 +18,7 @@ import {
 } from './icons';
 import { useAuth } from '../context/AuthContext';
 import { FeatureGate } from './FeatureGate';
-import { FEATURE_FLAGS } from '@khatagenie/types';
+import { FEATURE_FLAGS, UserRole } from '@khatagenie/types';
 import { ThemeToggle } from './ThemeToggle';
 import { useWhatsAppStatus } from '../hooks/useWhatsAppStatus';
 
@@ -30,6 +30,7 @@ export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const isAdmin = user?.role === UserRole.SUPERADMIN || user?.role === UserRole.CA_ADMIN;
 
   // Live WhatsApp Connection Health Probe
   const { data: waStatus } = useWhatsAppStatus();
@@ -244,20 +245,22 @@ export const Navbar: React.FC = () => {
                           </span>
                         </div>
 
-                        {/* Quick Settings & Navigation */}
-                        <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
-                          <Link
-                            to="/settings/feature-flags"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors group"
-                          >
-                            <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-                            <div className="text-left flex-1">
-                              <p className="font-bold">Feature Flags Settings</p>
-                              <p className="text-[10px] text-slate-400 font-normal">Manage tenant switches & gates</p>
-                            </div>
-                          </Link>
-                        </div>
+                        {/* Quick Settings & Navigation (Admins Only) */}
+                        {isAdmin && (
+                          <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+                            <Link
+                              to="/settings/feature-flags"
+                              onClick={() => setUserMenuOpen(false)}
+                              className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors group"
+                            >
+                              <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                              <div className="text-left flex-1">
+                                <p className="font-bold">Feature Flags Settings</p>
+                                <p className="text-[10px] text-slate-400 font-normal">Manage tenant switches & gates</p>
+                              </div>
+                            </Link>
+                          </div>
+                        )}
 
                         {/* Appearance / Theme Toggle Inside Popover Card */}
                         <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
@@ -384,18 +387,20 @@ export const Navbar: React.FC = () => {
                   return link;
                 })}
 
-                <Link
-                  to="/settings/feature-flags"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-                    location.pathname === '/settings/feature-flags'
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Feature Flags Settings</span>
-                </Link>
+                {isAdmin && (
+                  <Link
+                    to="/settings/feature-flags"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                      location.pathname === '/settings/feature-flags'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Feature Flags Settings</span>
+                  </Link>
+                )}
               </div>
 
               {/* Theme Switcher in Mobile Drawer */}
