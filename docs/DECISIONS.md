@@ -223,3 +223,20 @@ This document tracks all significant architectural and technical decisions made 
 - **Trade-offs**: Requires `@fastify/rate-limit` and UUID key generation.
 - **Risks**: None; verified across full monorepo build (`npm run build`) and automated integration test suite (`test-crud.ts`).
 
+---
+
+## DEC-019: CSS Cascade Layer Architecture, Top-Aligned Form UX & Dedicated Modular SVG Icon Library
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: In `apps/web/src/index.css`, custom design system component classes (`.input-field`, `.search-input-field`, `.btn-primary`) were defined outside of Tailwind CSS's `@layer components`. This caused `.input-field`'s base horizontal padding (`px-3.5` / `14px`) to appear *after* utility classes (`.pl-10`, `.pl-16`, `.pr-10`) in the compiled CSS cascade, overriding the utility padding and causing typed text to overlap leading input icons. Additionally, form UX patterns needed architectural evaluation (Floating vs. Top-Aligned Static Labels), and icons were scattered across dependencies.
+- **Alternatives Considered**: 
+  1. Add `!important` to utility classes or switch to Material floating labels.
+  2. Implement comprehensive, standards-compliant design system architecture:
+     - **Tailwind `@layer components`**: Wrap all design system classes in `@layer components { ... }` so utility classes naturally override component defaults in the cascade without `!important`.
+     - **Top-Aligned Static Labels Policy**: Standardize on high-contrast, top-aligned static labels over floating labels for B2B financial software to maximize saccadic reading speed (1 fixation per field), eliminate autofill glitches (1Password/Chrome), and cleanly support leading icons (`Mail`, `Lock`) and fixed prefixes (`+91`).
+     - **Dedicated Modular SVG Icon Library**: Create `apps/web/src/components/icons/` with pure, type-safe SVG components, removing external icon library sprawl and guaranteeing zero bundle bloat with 100% theme inheritance (`currentColor`).
+- **Selected Option**: Option 2.
+- **Reason for Selection**: Permanently resolves the specificity/cascade conflict cleanly, delivers optimal usability for CA and accounting workflows, and provides a centralized, reusable SVG icon system across the web application.
+- **Trade-offs**: Requires migrating icon imports across web pages.
+- **Risks**: None; verified across full monorepo build (`npm run build`), integration tests (`test-crud.ts`), and end-to-end browser inspection in Chrome DevTools and Playwright.
+

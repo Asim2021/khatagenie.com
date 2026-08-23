@@ -8,7 +8,7 @@ import {
   FileQuestion, 
   ChevronLeft, 
   ChevronRight 
-} from 'lucide-react';
+} from './icons';
 
 interface ImageViewerProps {
   src: string;

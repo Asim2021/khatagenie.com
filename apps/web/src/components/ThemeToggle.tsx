@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, Laptop, Check } from 'lucide-react';
+import { Sun, Moon, Laptop, Check } from './icons';
 import { useTheme, Theme } from '../context/ThemeContext';
 
 interface ThemeToggleProps {

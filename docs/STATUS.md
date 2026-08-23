@@ -1,7 +1,7 @@
 # Project Status: KhataGenie.com
 
-**Last Updated**: 2026-08-23 18:05 IST  
-**Overall Status**: 🟢 Defense-in-Depth Security Hardened (Rate Limiting, Multi-Tenant Isolation, UUID Storage, Production Secret Guards, CSP, Uninterrupted In-Memory Dual-Token Rotation), 100% Verified Full Monorepo Build & Integration Tests (Production-Ready)
+**Last Updated**: 2026-08-23 18:25 IST  
+**Overall Status**: 🟢 CSS Cascade Layer Architecture & Dedicated Modular SVG Icon Library Implemented, Full-Stack Security Hardened, 100% Verified Full Monorepo Build & Integration Tests (Production-Ready)
 
 ---
 
@@ -9,6 +9,8 @@
 
 | Package / Component | Directory | Status | Notes |
 |---|---|---|---|
+| Dedicated Modular SVG Icon Library | `apps/web/src/components/icons/*` | 🟢 Implemented & Verified | Zero external icon library dependencies, 100% type-safe `IconProps`, pure inline SVG vectors, `currentColor` theme inheritance, pixel-perfect baseline alignment |
+| CSS Cascade Specificity & Input Padding | `apps/web/src/index.css`, `apps/web/src/pages/LoginPage.tsx` | 🟢 Implemented & Verified | All custom component classes wrapped in `@layer components`; utility classes (`pl-10`, `pl-16`, `pr-10`) naturally override defaults in cascade; zero text/icon overlap |
 | Enterprise Dual-Token Auth | `apps/api/src/routes/auth.ts`, `apps/web/src/store/authStore.ts`, `apps/web/src/lib/api.ts` | 🟢 Implemented & Verified | 15-min in-memory access token via **Zustand store** (0 tokens in `localStorage`), `httpOnly` refresh cookie (1-day default, 7-day Remember Me), silent boot refresh, proactive 14-min rotation timer, 401 promise mutex retry interceptor |
 | Full-Stack Security Hardening | `apps/api/src/server.ts`, `apps/api/src/services/*`, `apps/api/src/lib/env.ts` | 🟢 Hardened & Verified | `@fastify/rate-limit` (150 req/min), Helmet CSP & nosniff, Zod production secret guards, `crypto.randomUUID()` file keys with path traversal protection, WhatsApp strict multi-tenant isolation |
 | PostgreSQL Database & Migrations | `apps/api/prisma`, `apps/api/src/lib/prisma.ts` | 🟢 Connected & Verified | Running on local Docker container `localhost:5432` (`root` / `Asim@123`), initial migration `20260823000000_init` applied, seeded with 1 Admin & 1 Staff user, zero mock data |
@@ -18,7 +20,7 @@
 | Header Navigation & Popover Card | `apps/web/src/components/Navbar.tsx` | 🟢 Implemented & Verified | Far-left branding, centered nav tabs, far-right User Profile trigger + floating Popover Card (details, feature flags link, segmented theme switch, sign out) |
 | Responsive Breakpoint Synchronization | `apps/web/src/components/Navbar.tsx` | 🟢 Implemented & Verified | Synchronized `lg:flex` / `lg:hidden` breakpoints, completely eliminating the previous 640px–767px navigation dead zone |
 | Agency-Grade Form Elements UI | `apps/web/src/index.css` | 🟢 Implemented & Verified | `.input-field`, `.select-field` (custom SVG emerald chevron), `.checkbox-custom` (emerald accent), `.search-input-field` |
-| Top-Right Toast Notifications | `apps/web/src/context/ToastContext.tsx` | 🟢 Implemented & Verified | Double-bezel alert cards, left color indicator bars, Lucide icons, slide-in animation at `top-4 right-4 z-[9999]` |
+| Top-Right Toast Notifications | `apps/web/src/context/ToastContext.tsx` | 🟢 Implemented & Verified | Double-bezel alert cards, left color indicator bars, slide-in animation at `top-4 right-4 z-[9999]` |
 | Portal-Based Modal Overlays | `apps/web/src/pages/ClientsPage.tsx` | 🟢 Implemented & Verified | `createPortal(..., document.body)` with full-viewport blur covering sticky navbar with zero seam artifacts |
 | MSME Clients CRUD & Directory | `apps/web/src/pages/ClientsPage.tsx`, `apps/api/src/routes/clients.ts` | 🟢 Implemented & Verified | End-to-end PostgreSQL CRUD (Create, List, Update, Delete) |
 | High-Contrast Multi-Tier Buttons | `apps/web/src/index.css` | 🟢 Implemented & Verified | `.btn-primary` (WCAG AAA emerald + white text in light; neon emerald in dark), `.btn-secondary`, `.btn-action`, `.btn-danger`, `.btn-sky` |

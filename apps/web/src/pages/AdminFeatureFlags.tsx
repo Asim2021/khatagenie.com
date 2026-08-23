@@ -3,7 +3,7 @@ import {
   Sliders, 
   ShieldAlert, 
   Filter
-} from 'lucide-react';
+} from '../components/icons';
 import { useAuth } from '../context/AuthContext';
 import { 
   FEATURE_FLAGS, 

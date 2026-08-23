@@ -286,6 +286,17 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
     - Uninterrupted Dual-Token Rotation: Added proactive 14-minute background rotation timer in `AuthContext.tsx` combined with in-flight promise mutex in `api.ts` so active users are never interrupted or logged out during token renewal.
     - Executed `npx tsx apps/api/test-crud.ts` (100% Passed) and `npm run build` (100% Passed across all monorepo packages).
 
+  - Implemented Phase 19: CSS Cascade Specificity Fix, Top-Aligned Form Architecture & Dedicated SVG Icons Library:
+    - Diagnosed the root cause of typed text overlapping input icons: custom component classes in `index.css` were written outside Tailwind's `@layer components`, causing `.input-field`'s `14px` base padding to override utility modifiers like `pl-10` (`40px`) due to stylesheet source order.
+    - Wrapped all custom component classes (`.input-field`, `.search-input-field`, `.select-field`, `.checkbox-custom`, `.btn-*`, `.doppelrand-*`, `.page-container`) inside `@layer components { ... }` in `apps/web/src/index.css`.
+    - Performed comprehensive UI/UX analysis on Floating Labels vs. Top-Aligned Static Labels in Fintech/Accounting software, recommending top-aligned static labels for maximum saccadic reading speed, zero autofill conflicts, and seamless leading icon / country prefix (`+91`) compatibility.
+    - Created dedicated, modular SVG icon library in `apps/web/src/components/icons/` with typed `IconProps`, pure vector SVGs, and zero third-party icon dependencies.
+    - Migrated all web pages and components to the new SVG icon library.
+    - Centered the password visibility toggle button vertically (`top-1/2 -translate-y-1/2`).
+    - Verified computed styles with Chrome DevTools (`paddingLeft: 40px` on `pl-10`, `paddingLeft: 36px` on `search-input-field`).
+    - Tested all pages (`/login`, `/inbox`, `/clients`, `/exports`, `/reconciliation`, `/settings/feature-flags`) in Chrome DevTools and Playwright, capturing visual verification screenshots with zero text/icon overlap.
+    - Executed `npm run build` (100% Passed) and `npx tsx apps/api/test-crud.ts` (100% Passed).
+
 ### Next Actions
 - Connect live Meta WhatsApp Cloud API credentials in `.env` for physical phone message testing.
 - Deploy to Railway production environment.

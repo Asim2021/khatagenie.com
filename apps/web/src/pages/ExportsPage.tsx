@@ -5,7 +5,7 @@ import {
   FileSpreadsheet, 
   CheckCircle2,
   Building2
-} from 'lucide-react';
+} from '../components/icons';
 import { fetchApi } from '../lib/api';
 import { FeatureGate } from '../components/FeatureGate';
 import { FEATURE_FLAGS } from '@khatagenie/types';

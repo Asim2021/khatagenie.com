@@ -8,7 +8,7 @@ import {
   Search,
   X,
   ExternalLink
-} from 'lucide-react';
+} from '../components/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
 import { useToast } from '../context/ToastContext';

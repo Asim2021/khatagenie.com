@@ -15,7 +15,7 @@ import {
   Check,
   CheckSquare,
   Square
-} from 'lucide-react';
+} from '../components/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
 import { FeatureGate } from '../components/FeatureGate';

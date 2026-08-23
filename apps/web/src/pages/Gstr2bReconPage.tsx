@@ -8,7 +8,7 @@ import {
   HelpCircle, 
   Check, 
   FileJson
-} from 'lucide-react';
+} from '../components/icons';
 import { useMutation } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
 import { ReconciliationSummary, Gstr2bMatchStatus } from '@khatagenie/types';

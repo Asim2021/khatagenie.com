@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-08-23
+
+### Fixed
+- **Input Field Icon Overlap Bug**: Wrapped all custom component classes in `apps/web/src/index.css` inside Tailwind's `@layer components`, ensuring utility modifiers (`pl-10`, `pl-16`, `pr-10`) naturally override base padding in the CSS cascade without specificity collisions.
+- **Password Visibility Eye Button Alignment**: Vertically centered the toggle button at `top-1/2 -translate-y-1/2` for pixel-perfect alignment with leading icons.
+
+### Added
+- **Dedicated Modular SVG Icon Library**: Created `apps/web/src/components/icons/` with pure, type-safe SVG components (`IconProps`), eliminating external runtime dependencies and ensuring full theme inheritance (`currentColor`).
+- **Form Architecture Policy**: Standardized on high-contrast top-aligned static labels over floating labels for B2B financial workflows (maximizing saccadic reading speed, eliminating autofill bugs, and cleanly supporting leading icons and `+91` phone prefixes).
+
 ## [0.4.0] - 2026-08-23
 
 ### Added

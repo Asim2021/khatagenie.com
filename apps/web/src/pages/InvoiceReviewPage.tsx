@@ -10,7 +10,7 @@ import {
   Hash,
   Image as ImageIcon,
   FileSpreadsheet
-} from 'lucide-react';
+} from '../components/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ImageViewer } from '../components/ImageViewer';
 import { fetchApi } from '../lib/api';
