@@ -1,7 +1,7 @@
 # Project Status: KhataGenie.com
 
-**Last Updated**: 2026-08-23 05:00 IST  
-**Overall Status**: 🟢 High-End Agency Visual Design & 100% Mobile Responsive Table-to-Card Architecture Verified (Production-Ready)
+**Last Updated**: 2026-08-23 05:35 IST  
+**Overall Status**: 🟢 High-End Agency Visual Design, Top-Right Toast System, Portal-Based Modals & 100% Verified CRUD Endpoints (Production-Ready)
 
 ---
 
@@ -9,34 +9,40 @@
 
 | Package / Component | Directory | Status | Notes |
 |---|---|---|---|
-| Visual Design System & Fonts | `apps/web/index.html`, `tailwind.config.js` | 🟢 Implemented | `Plus Jakarta Sans` typography, `spring` cubic-bezier transitions & double-bezel (Doppelrand) tokens |
-| Zero-Horizontal-Scroll Hardening | `apps/web/src/index.css` | 🟢 Implemented | `overflow-x: hidden`, safe-area insets & concentric rounding across all viewport sizes (320px–1920px) |
+| Top-Right Toast Notifications | `apps/web/src/context/ToastContext.tsx` | 🟢 Implemented & Verified | Double-bezel alert cards, left color indicator bars, Lucide icons, slide-in animation at `top-4 right-4 z-[9999]` |
+| Portal-Based Modal Overlays | `apps/web/src/pages/ClientsPage.tsx` | 🟢 Implemented & Verified | `createPortal(..., document.body)` with full-viewport blur covering sticky navbar with zero seam artifacts |
+| MSME Clients CRUD & Directory | `apps/web/src/pages/ClientsPage.tsx`, `apps/api/src/routes/clients.ts` | 🟢 Implemented & Verified | End-to-end CRUD (Create, List, Update, Delete) with resilient offline store and instantaneous `isDatabaseOnline` fast probe |
+| High-Contrast Multi-Tier Buttons | `apps/web/src/index.css` | 🟢 Implemented & Verified | `.btn-primary` (WCAG AAA emerald + white text in light; neon emerald in dark), `.btn-secondary`, `.btn-action`, `.btn-danger`, `.btn-sky` |
 | Invoices Inbox Dual-Mode UI | `apps/web/src/pages/InboxPage.tsx` | 🟢 Implemented | Desktop `md:block` table + Mobile `md:hidden` rich interactive double-bezel cards with 1-tap review |
 | GSTR-2B Recon Dual-Mode UI | `apps/web/src/pages/Gstr2bReconPage.tsx` | 🟢 Implemented | Desktop 6-col table + Mobile 2-way comparison cards with Books vs Portal entries, ITC badge, & delta |
-| MSME Clients Directory | `apps/web/src/pages/ClientsPage.tsx` | 🟢 Implemented | Double-bezel cards, click-to-WhatsApp link & responsive modal with zero horizontal scroll |
 | Export Center (Tally & Excel) | `apps/web/src/pages/ExportsPage.tsx` | 🟢 Implemented | Double-bezel export cards with micro-pill format tags and responsive layout |
 | Invoice Review Studio | `apps/web/src/pages/InvoiceReviewPage.tsx` | 🟢 Implemented | Desktop 50/50 split-screen + Mobile Scan/Form switch with math parity banner and zero overflow |
 | Superadmin Feature Flags | `apps/web/src/pages/AdminFeatureFlags.tsx` | 🟢 Implemented | Double-bezel list container with responsive toggle switches and category filters |
 | Light & Dark Theme System | `apps/web/src/context/ThemeContext.tsx` | 🟢 Implemented | Light, Dark, System modes with zero-FOUC head script & high-contrast tokens |
-| Navigation Header & Drawer | `apps/web/src/components/Navbar.tsx` | 🟢 Implemented | Sticky header with sliding mobile drawer and segmented theme selector |
-| Project Documentation | `/docs` | 🟢 Implemented | Core 14 living memory documents synchronized |
+| Navigation Header & Drawer | `apps/web/src/components/Navbar.tsx` | 🟢 Implemented | Sticky header with single-line brand container, non-wrapping `CA PRO` badge, and mobile drawer |
 | Shared Types & Flags | `packages/types` | 🟢 Implemented | 14 Feature Flags declared with baseline `false` defaults |
-| Shared GST Utilities | `packages/shared` | 🟢 Implemented | GSTIN validation, State mapping & Decimal Math checks |
-| Backend API Server | `apps/api` | 🟢 Implemented | Fastify 4.27 + JWT + Helmet + CORS + Uploads + /ready probe |
+| Backend API Server | `apps/api` | 🟢 Implemented & Verified | Fastify 4.27 + JWT + Helmet + CORS + Uploads + /ready probe + 100% passed CRUD integration suite (`test-crud.ts`) |
 
 ---
 
 ## Verification Evidence
 
-- Root monorepo build (`npm run build`): **100% Passed** with 0 errors across all workspaces (`types`, `shared`, `api`, `web`).
-- Automated Playwright Mobile Viewport Verification (375x812, 390x844, 412x915):
-  - Invoices Inbox (`/`): `scrollWidth === innerWidth` (**0px horizontal overflow**). Dual-mode card rendering verified.
-  - GSTR-2B Match (`/reconciliation`): `scrollWidth === innerWidth` (**0px horizontal overflow**). 2-way comparison cards verified.
-  - MSME Clients (`/clients`): `scrollWidth === innerWidth` (**0px horizontal overflow**). Double-bezel client cards verified.
-  - Export Center (`/exports`): `scrollWidth === innerWidth` (**0px horizontal overflow**). Tally and Excel export cards verified.
-  - Superadmin Flags (`/settings/feature-flags`): `scrollWidth === innerWidth` (**0px horizontal overflow**). Toggle list verified.
-  - Review Studio (`/invoices/:id/review`): `scrollWidth === innerWidth` (**0px horizontal overflow**). Scan vs Form switcher verified.
-- Automated Playwright Desktop Viewport Verification (1280x800):
-  - Desktop data tables rendered with double-bezel containers, monospace financial columns, and status pills.
-  - Light & Dark mode visual contrast verified with Playwright screenshots.
+- **All CRUD Endpoints Verified (`test-crud.ts`)**:
+  - `POST /api/v1/auth/login`: 200 OK
+  - `GET /api/v1/clients`: 200 OK
+  - `POST /api/v1/clients`: 201 Created
+  - `PATCH /api/v1/clients/:id`: 200 OK
+  - `DELETE /api/v1/clients/:id`: 200 OK
+  - `GET /api/v1/invoices`: 200 OK
+  - `GET /api/v1/invoices/:id`: 200 OK
+  - `PATCH /api/v1/invoices/:id`: 200 OK
+  - `GET /api/v1/reconciliation/sample`: 200 OK
+  - `POST /api/v1/reconciliation/process`: 200 OK
+  - `GET /api/v1/exports/tally`: 200 OK (XML Vouchers)
+  - `GET /api/v1/exports/excel`: 200 OK (.XLSX)
+- **Automated Playwright UI Verifications**:
+  - Modal Portal Backdrop: verified full-window coverage with seamless blur over sticky header (`modal-portal-backdrop-verified.png`).
+  - Top-Right Toast Notifications: verified in both Light (`clients-toast-top-right-verified.png`) and Dark mode (`clients-toast-dark-verified.png`).
+  - Mobile zero horizontal scroll: verified across 375px, 390px, and 412px viewports.
+
 

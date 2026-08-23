@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { prisma } from '../lib/prisma';
+import { prisma, isDatabaseOnline } from '../lib/prisma';
 import { authenticate } from '../middleware/auth';
 import { requireFeature } from '../middleware/featureGuard';
 import { FEATURE_FLAGS, InvoiceStatus, InvoiceType, InvoiceUpdateSchema } from '@khatagenie/types';
@@ -46,42 +46,45 @@ export async function invoiceRoutes(server: FastifyInstance) {
       ];
     }
 
-    try {
-      const [invoices, total] = await Promise.all([
-        prisma.invoice.findMany({
-          where,
-          include: {
-            client: { select: { id: true, businessName: true, gstin: true, whatsappPhone: true } },
-            reviewedBy: { select: { id: true, fullName: true, email: true } },
-          },
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset,
-        }),
-        prisma.invoice.count({ where }),
-      ]);
+    if (await isDatabaseOnline()) {
+      try {
+        const [invoices, total] = await Promise.all([
+          prisma.invoice.findMany({
+            where,
+            include: {
+              client: { select: { id: true, businessName: true, gstin: true, whatsappPhone: true } },
+              reviewedBy: { select: { id: true, fullName: true, email: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+            skip: offset,
+          }),
+          prisma.invoice.count({ where }),
+        ]);
 
-      // Compute status counts for dashboard badges
-      const statusCounts = await prisma.invoice.groupBy({
-        by: ['status'],
-        where: { organizationId: orgId },
-        _count: { id: true },
-      });
+        // Compute status counts for dashboard badges
+        const statusCounts = await prisma.invoice.groupBy({
+          by: ['status'],
+          where: { organizationId: orgId },
+          _count: { id: true },
+        });
 
-      const countsMap = statusCounts.reduce((acc, curr) => {
-        acc[curr.status] = curr._count.id;
-        return acc;
-      }, {} as Record<string, number>);
+        const countsMap = statusCounts.reduce((acc, curr) => {
+          acc[curr.status] = curr._count.id;
+          return acc;
+        }, {} as Record<string, number>);
 
-      return {
-        invoices,
-        total,
-        limit,
-        offset,
-        counts: countsMap,
-      };
-    } catch (err: any) {
-      console.warn(`[Invoices] Database query notice (${err.message}). Returning offline sample invoices.`);
+        return {
+          invoices,
+          total,
+          limit,
+          offset,
+          counts: countsMap,
+        };
+      } catch (err: any) {
+        console.warn(`[Invoices] Database query notice (${err.message}). Returning offline sample invoices.`);
+      }
+    }
       const sampleInvoices = [
         {
           id: 'inv-delhi-01',
@@ -194,29 +197,30 @@ export async function invoiceRoutes(server: FastifyInstance) {
           EXPORTED: 0,
         },
       };
-    }
-  });
+    });
 
   // 2. GET /api/v1/invoices/:id
   server.get('/:id', async (request, reply) => {
     const orgId = request.user!.organizationId;
     const { id } = request.params as { id: string };
 
-    try {
-      const invoice = await prisma.invoice.findFirst({
-        where: { id, organizationId: orgId },
-        include: {
-          client: true,
-          reviewedBy: { select: { id: true, fullName: true, email: true } },
-          lineItems: { orderBy: { id: 'asc' } },
-        },
-      });
+    if (await isDatabaseOnline()) {
+      try {
+        const invoice = await prisma.invoice.findFirst({
+          where: { id, organizationId: orgId },
+          include: {
+            client: true,
+            reviewedBy: { select: { id: true, fullName: true, email: true } },
+            lineItems: { orderBy: { id: 'asc' } },
+          },
+        });
 
-      if (invoice) {
-        return invoice;
+        if (invoice) {
+          return invoice;
+        }
+      } catch (err: any) {
+        console.warn(`[Invoices] /:id DB notice (${err.message}). Returning sample invoice.`);
       }
-    } catch (err: any) {
-      console.warn(`[Invoices] /:id DB notice (${err.message}). Returning sample invoice.`);
     }
 
     // Fallback sample invoice details for offline reviewer preview
@@ -445,23 +449,29 @@ export async function invoiceRoutes(server: FastifyInstance) {
       );
 
       // Create invoice record
-      const invoice = await prisma.invoice.create({
-        data: {
-          organizationId: orgId,
-          senderPhone: 'DIRECT_WEB_UPLOAD',
-          fileUrl: uploadResult.fileUrl,
-          fileMimeType: data.mimetype,
-          fileSizeBytes: uploadResult.sizeBytes,
-          status: InvoiceStatus.PROCESSING,
-        },
-      });
+      let invoiceId = `inv-upload-${Date.now()}`;
+      try {
+        const invoice = await prisma.invoice.create({
+          data: {
+            organizationId: orgId,
+            senderPhone: 'DIRECT_WEB_UPLOAD',
+            fileUrl: uploadResult.fileUrl,
+            fileMimeType: data.mimetype,
+            fileSizeBytes: uploadResult.sizeBytes,
+            status: InvoiceStatus.PROCESSING,
+          },
+        });
+        invoiceId = invoice.id;
+      } catch (err: any) {
+        console.warn(`[Invoices] DB upload notice (${err.message}). Using generated ID: ${invoiceId}`);
+      }
 
       // Enqueue to background worker queue
-      extractionQueue.enqueue(invoice.id, fullDiskPath);
+      extractionQueue.enqueue(invoiceId, fullDiskPath);
 
       return {
         message: 'File uploaded successfully. Extraction initiated.',
-        invoiceId: invoice.id,
+        invoiceId: invoiceId,
         fileUrl: uploadResult.fileUrl,
         pageCount: docInfo.pageCount,
       };

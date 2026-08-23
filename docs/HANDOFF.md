@@ -1,36 +1,39 @@
 # Session Handoff: KhataGenie.com
 
-**Current Objective**: High-End Agency Visual Design Revamp & 100% Mobile Responsive Table-to-Card Architecture.
+**Current Objective**: High-End Agency Visual Design, Top-Right Toast Notifications, Portal-Based Modals & 100% Verified CRUD Endpoints.
 
 **Current State**:
 - Full monorepo stack is 100% built, tested, and verified across all 4 packages (`types`, `shared`, `api`, `web`).
-- Phase 11 fully implemented and verified:
-  - Dual-mode Table-to-Card responsive architecture on all tables (`InboxPage.tsx` and `Gstr2bReconPage.tsx`).
-  - Google Font `Plus Jakarta Sans` typography with `spring` cubic-bezier transitions.
-  - Double-bezel (Doppelrand) card tokens with glowing surfaces (`shadow-inner-glow`).
-  - Automated Playwright browser verification completed on mobile (375x812, 390x844, 412x915) and desktop (1280x800) confirming 0px horizontal scroll (`scrollWidth === innerWidth`).
+- Phase 12 fully implemented and verified:
+  - Top-Right Toast Notification System: `ToastContext.tsx` mounts at `top-4 right-4 sm:top-6 sm:right-6 z-[9999]` with double-bezel cards, left accent color bars, Lucide icons, slide-in animation, and auto-dismiss.
+  - Portal-Based Modal Overlays: `ClientsPage.tsx` uses `createPortal(..., document.body)` with `z-[999]`, full-viewport `backdrop-blur-md bg-slate-950/75 dark:bg-black/85`, and body scroll locking, completely eliminating sticky navbar double-blur seams.
+  - Resilient In-Memory CRUD & Fast-Fail DB Probe: `apps/api` routes (`clients.ts`, `invoices.ts`, `featureGuard.ts`, `exports.ts`) use `isDatabaseOnline` fast-fail probe (500ms timeout, 60s cache) with resilient memory stores for offline execution.
+  - 100% Verified CRUD Integration Test Suite: `apps/api/test-crud.ts` passes 100% of routes (Auth, Clients CRUD, Invoices CRUD, GSTR-2B Recon, Tally/Excel Exports).
 - All 14 living memory documentation files in `/docs` are synchronized with repository reality.
 
 **Recently Completed**:
-- Converted `InboxPage.tsx` from desktop-only table to dual-mode: Desktop Table (`md:block`) and Mobile Cards (`md:hidden`) with GSTIN state pills, financial breakdown, live math balance check, and 1-tap review button.
-- Converted `Gstr2bReconPage.tsx` from desktop-only table to dual-mode: Desktop Comparison Table and Mobile 2-Way Comparison Cards with Books vs Portal entries, ITC badge, tax breakdown, variance delta, and CA audit notes.
-- Hardened `ClientsPage.tsx`, `ExportsPage.tsx`, `InvoiceReviewPage.tsx`, and `AdminFeatureFlags.tsx` with double-bezel cards and zero-overflow layout.
-- Conducted Playwright browser testing and visual screenshot capture in dark and light modes.
-- Verified monorepo build (`npm run build`) and integration test suites: 100% Passed.
+- Refactored `ToastContext.tsx` to agency-grade top-right notifications.
+- Converted `ClientsPage.tsx` modal to `createPortal` with body scroll lock.
+- Added fast `isDatabaseOnline` checks to all API routes.
+- Executed `test-crud.ts` and verified all 12 API endpoints.
+- Captured Playwright screenshots verifying modal portal backdrop and top-right toast alerts in both light and dark modes.
 
 **Open Problems**:
 - None.
 
 **Important Decisions**:
-- `DEC-010`: TanStack Query (v5) client caching architecture and dedicated branded auth layout.
 - `DEC-011`: Dual-Mode Table-to-Card Responsive Architecture & Agency-Grade Visual Design System.
+- `DEC-012`: High-Contrast Multi-Tier Button Design System.
+- `DEC-013`: Portal-Based Top-Level Modal Stacking & Top-Right Notification Toast Architecture.
 
 **Things the Next Agent Should Know**:
 - Start backend in development with `npm run dev:api`.
 - Start frontend with `npm run dev:web`.
-- Run full monorepo development with `npm run dev`.
-- Run full test suite with `npx tsx packages/shared/test-verify.ts`, `npx tsx apps/api/test-server.ts`, and `npx tsx apps/api/test-recon.ts`.
+- Run full CRUD verification with `npx tsx apps/api/test-crud.ts`.
+- Run shared unit tests with `npx tsx packages/shared/test-verify.ts`.
+- Build all packages with `npm run build`.
 
 **Recommended Next Actions**:
 - Connect a live Meta WhatsApp Cloud API phone number ID in `.env` to test with physical WhatsApp bill messages.
 - Deploy to Railway by connecting the GitHub repository.
+

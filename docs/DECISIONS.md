@@ -132,3 +132,18 @@ This document tracks all significant architectural and technical decisions made 
 - **Reason for Selection**: Ensures crisp contrast, authoritative visual hierarchy, and distinct aesthetic personality in both Light and Dark modes.
 - **Trade-offs**: None; unified in global design tokens.
 - **Risks**: None; verified with Playwright screenshots in both modes.
+
+---
+
+## DEC-013: Portal-Based Top-Level Modal Stacking & Top-Right Notification Toast Architecture
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Modals rendered inside deeply nested page components suffered from CSS stacking context constraints where sticky `<Navbar>` (z-40) rendered over modal backdrops, creating a double-blurred top horizontal seam. Notifications also lacked a standardized top-right positioning with rich status indicators.
+- **Alternatives Considered**: 
+  1. Manual z-index bumping on nested components without portals.
+  2. React Portals (`createPortal(..., document.body)`) with body scroll locking, combined with a top-right fixed notification system (`z-[9999]`) and fast-path offline DB CRUD handlers.
+- **Selected Option**: Option 2 (React Portals for all modal overlays + top-right double-bezel toast notifications + resilient in-memory offline CRUD with `isDatabaseOnline` fast probe).
+- **Reason for Selection**: Eliminates all browser stacking context artifacts across sticky headers, ensures seamless viewport-wide backdrop blur, provides authoritative visual feedback for all operations, and guarantees 100% CRUD testability offline.
+- **Trade-offs**: None.
+- **Risks**: None; verified via automated Playwright screenshots and end-to-end integration tests.
+

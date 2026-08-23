@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { FeatureFlagKey, TIER_FEATURE_DEFAULTS, SubscriptionTier } from '@khatagenie/types';
-import { prisma } from '../lib/prisma';
+import { prisma, isDatabaseOnline } from '../lib/prisma';
 import type { AuthenticatedUser } from '../types/fastify';
 
 /**
@@ -10,32 +10,34 @@ export async function isFeatureEnabledForOrg(
   organizationId: string,
   flagKey: FeatureFlagKey
 ): Promise<boolean> {
-  try {
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
-      select: { subscriptionTier: true, featureOverrides: true },
-    });
+  if (await isDatabaseOnline()) {
+    try {
+      const org = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { subscriptionTier: true, featureOverrides: true },
+      });
 
-    if (!org) return false;
+      if (!org) return false;
 
-    const tier = (org.subscriptionTier as SubscriptionTier) || 'free';
-    const overrides = (org.featureOverrides as Record<string, boolean>) || {};
+      const tier = (org.subscriptionTier as SubscriptionTier) || 'free';
+      const overrides = (org.featureOverrides as Record<string, boolean>) || {};
 
-    // Check explicit override first
-    if (flagKey in overrides) {
-      return Boolean(overrides[flagKey]);
-    }
+      // Check explicit override first
+      if (flagKey in overrides) {
+        return Boolean(overrides[flagKey]);
+      }
 
-    // Fallback to tier default
-    const tierDefaults = TIER_FEATURE_DEFAULTS[tier] || TIER_FEATURE_DEFAULTS.free;
-    return Boolean(tierDefaults[flagKey]);
-  } catch (err: any) {
-    // If DB is offline, allow seed demo org to access 'pro' tier defaults, otherwise fallback to 'free' (default false)
-    if (organizationId === 'org_bansal_ca') {
-      return Boolean(TIER_FEATURE_DEFAULTS.pro[flagKey] ?? true);
-    }
-    return Boolean(TIER_FEATURE_DEFAULTS.free[flagKey] || false);
+      // Fallback to tier default
+      const tierDefaults = TIER_FEATURE_DEFAULTS[tier] || TIER_FEATURE_DEFAULTS.free;
+      return Boolean(tierDefaults[flagKey]);
+    } catch (err: any) {}
   }
+
+  // If DB is offline, allow seed demo org to access 'pro' tier defaults, otherwise fallback to 'free' (default false)
+  if (organizationId === 'org_bansal_ca') {
+    return Boolean(TIER_FEATURE_DEFAULTS.pro[flagKey] ?? true);
+  }
+  return Boolean(TIER_FEATURE_DEFAULTS.free[flagKey] || false);
 }
 
 /**

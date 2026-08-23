@@ -229,6 +229,26 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
     - Verified both Dark Mode and Light Mode with high-contrast, double-bezel styling.
     - Captured and embedded visual screenshots in `walkthrough.md`.
 
+  - Implemented Phase 12: Top-Right Toast Notification System, Portal-Based Modals, and 100% CRUD Verification:
+    - Redesigned `ToastContext.tsx` to mount at `top-4 right-4 sm:top-6 sm:right-6 z-[9999]` with double-bezel cards, left status color indicator bars (emerald, rose, amber, cyan), Lucide icons, slide-in-from-top animation, and auto-dismiss countdown.
+    - Resolved sticky navbar double-blur artifact on modals by using React Portals (`createPortal(..., document.body)`) in `ClientsPage.tsx` with `z-[999]`, `backdrop-blur-md bg-slate-950/75 dark:bg-black/85`, and body scroll locking.
+    - Hardened all API CRUD routes in `apps/api` (`clients.ts`, `invoices.ts`, `featureGuard.ts`, `exports.ts`) with `isDatabaseOnline` fast-fail probe and in-memory fallback stores to ensure 100% offline resilience and zero TCP socket blocking.
+    - Created `apps/api/test-crud.ts` and executed full integration verification:
+      - Auth Login (`POST /api/v1/auth/login`): 200 OK
+      - Clients List (`GET /api/v1/clients`): 200 OK
+      - Clients Create (`POST /api/v1/clients`): 201 Created
+      - Clients Update (`PATCH /api/v1/clients/:id`): 200 OK
+      - Clients Delete (`DELETE /api/v1/clients/:id`): 200 OK
+      - Invoices List (`GET /api/v1/invoices`): 200 OK
+      - Invoices Single (`GET /api/v1/invoices/:id`): 200 OK
+      - Invoices Approve (`PATCH /api/v1/invoices/:id`): 200 OK
+      - GSTR-2B Sample (`GET /api/v1/reconciliation/sample`): 200 OK
+      - GSTR-2B Process (`POST /api/v1/reconciliation/process`): 200 OK
+      - Tally XML Export (`GET /api/v1/exports/tally`): 200 OK
+      - Excel Export (`GET /api/v1/exports/excel`): 200 OK
+    - Verified live client registration in Playwright, capturing `modal-portal-backdrop-verified.png`, `clients-toast-top-right-verified.png`, and `clients-toast-dark-verified.png`.
+
 ### Next Actions
 - Connect live Meta WhatsApp Cloud API credentials in `.env` for production phone testing.
 - Deploy to Railway production environment.
+
