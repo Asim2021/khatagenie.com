@@ -17,7 +17,7 @@ if (!fs.existsSync(uploadsDir)) {
 export const storageService = {
   async saveFile(filename: string, buffer: Buffer, mimeType: string): Promise<StorageUploadResult> {
     const rawExt = path.extname(filename).toLowerCase();
-    const safeExt = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.heic'].includes(rawExt) ? rawExt : '.jpg';
+    const safeExt = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.heic', '.svg'].includes(rawExt) ? rawExt : '.jpg';
     const storageKey = `${crypto.randomUUID()}${safeExt}`;
     const filePath = path.join(uploadsDir, storageKey);
     

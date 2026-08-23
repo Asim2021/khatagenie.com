@@ -21,18 +21,18 @@ export enum InvoiceType {
 
 export const InvoiceItemSchema = z.object({
   id: z.string().optional(),
-  description: z.string(),
+  description: z.string().optional().default('Line Item'),
   hsnCode: z.string().nullable().optional(),
-  quantity: z.number().nullable().optional(),
+  quantity: z.coerce.number().nullable().optional(),
   unit: z.string().nullable().optional(),
-  unitPrice: z.number().nullable().optional(),
-  taxableAmount: z.number(),
-  gstRate: z.number(), // e.g. 18 for 18%
-  cgstAmount: z.number().nullable().optional(),
-  sgstAmount: z.number().nullable().optional(),
-  igstAmount: z.number().nullable().optional(),
-  totalAmount: z.number(),
-});
+  unitPrice: z.coerce.number().nullable().optional(),
+  taxableAmount: z.coerce.number().optional().default(0),
+  gstRate: z.coerce.number().optional().default(0), // e.g. 18 for 18%
+  cgstAmount: z.coerce.number().nullable().optional().default(0),
+  sgstAmount: z.coerce.number().nullable().optional().default(0),
+  igstAmount: z.coerce.number().nullable().optional().default(0),
+  totalAmount: z.coerce.number().optional().default(0),
+}).passthrough();
 
 export type InvoiceItem = z.infer<typeof InvoiceItemSchema>;
 
@@ -40,26 +40,26 @@ export type InvoiceItem = z.infer<typeof InvoiceItemSchema>;
  * Strict JSON schema returned by Vision AI model
  */
 export const InvoiceExtractionSchema = z.object({
-  supplierName: z.string().nullable(),
-  supplierGstin: z.string().nullable(),
-  supplierAddress: z.string().nullable(),
-  buyerGstin: z.string().nullable(),
-  invoiceNumber: z.string().nullable(),
-  invoiceDate: z.string().nullable(), // YYYY-MM-DD
+  supplierName: z.string().nullable().optional(),
+  supplierGstin: z.string().nullable().optional(),
+  supplierAddress: z.string().nullable().optional(),
+  buyerGstin: z.string().nullable().optional(),
+  invoiceNumber: z.string().nullable().optional(),
+  invoiceDate: z.string().nullable().optional(), // YYYY-MM-DD
   dueDate: z.string().nullable().optional(),
-  invoiceType: z.nativeEnum(InvoiceType).default(InvoiceType.B2B_TAX_INVOICE),
-  taxableAmount: z.number().nullable(),
-  cgstAmount: z.number().nullable(),
-  sgstAmount: z.number().nullable(),
-  igstAmount: z.number().nullable(),
-  cessAmount: z.number().nullable().optional(),
-  roundOffAmount: z.number().nullable().optional(),
-  totalAmount: z.number().nullable(),
-  isReverseCharge: z.boolean().default(false),
+  invoiceType: z.nativeEnum(InvoiceType).default(InvoiceType.B2B_TAX_INVOICE).optional(),
+  taxableAmount: z.coerce.number().nullable().optional(),
+  cgstAmount: z.coerce.number().nullable().optional(),
+  sgstAmount: z.coerce.number().nullable().optional(),
+  igstAmount: z.coerce.number().nullable().optional(),
+  cessAmount: z.coerce.number().nullable().optional(),
+  roundOffAmount: z.coerce.number().nullable().optional(),
+  totalAmount: z.coerce.number().nullable().optional(),
+  isReverseCharge: z.boolean().default(false).optional(),
   lineItems: z.array(InvoiceItemSchema).default([]),
-  confidenceScore: z.number().min(0).max(1).default(0.8),
+  confidenceScore: z.coerce.number().min(0).max(1).default(0.8),
   extractionNotes: z.string().nullable().optional(),
-});
+}).passthrough();
 
 export type InvoiceExtractionResult = z.infer<typeof InvoiceExtractionSchema>;
 
@@ -71,19 +71,19 @@ export const InvoiceUpdateSchema = z.object({
   invoiceNumber: z.string().optional(),
   invoiceDate: z.string().optional(),
   invoiceType: z.nativeEnum(InvoiceType).optional(),
-  taxableAmount: z.number().optional(),
-  cgstAmount: z.number().optional(),
-  sgstAmount: z.number().optional(),
-  igstAmount: z.number().optional(),
-  cessAmount: z.number().optional(),
-  roundOffAmount: z.number().optional(),
-  totalAmount: z.number().optional(),
+  taxableAmount: z.coerce.number().optional(),
+  cgstAmount: z.coerce.number().optional(),
+  sgstAmount: z.coerce.number().optional(),
+  igstAmount: z.coerce.number().optional(),
+  cessAmount: z.coerce.number().optional(),
+  roundOffAmount: z.coerce.number().optional(),
+  totalAmount: z.coerce.number().optional(),
   isRcm: z.boolean().optional(),
   status: z.nativeEnum(InvoiceStatus).optional(),
   clientId: z.string().nullable().optional(),
   reviewNotes: z.string().optional(),
   lineItems: z.array(InvoiceItemSchema).optional(),
-});
+}).passthrough();
 
 export type InvoiceUpdatePayload = z.infer<typeof InvoiceUpdateSchema>;
 

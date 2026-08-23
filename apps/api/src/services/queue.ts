@@ -120,17 +120,17 @@ export class ExtractionQueue {
         await tx.invoiceItem.createMany({
           data: extraction.lineItems.map((item) => ({
             invoiceId: job.invoiceId,
-            description: item.description,
+            description: item.description || 'Line Item',
             hsnCode: item.hsnCode || null,
-            quantity: item.quantity || null,
+            quantity: item.quantity !== null && item.quantity !== undefined ? Number(item.quantity) : null,
             unit: item.unit || null,
-            unitPrice: item.unitPrice || null,
-            taxableAmount: item.taxableAmount,
-            gstRate: item.gstRate,
-            cgstAmount: item.cgstAmount || null,
-            sgstAmount: item.sgstAmount || null,
-            igstAmount: item.igstAmount || null,
-            totalAmount: item.totalAmount,
+            unitPrice: item.unitPrice !== null && item.unitPrice !== undefined ? Number(item.unitPrice) : null,
+            taxableAmount: Number(item.taxableAmount || 0),
+            gstRate: Number(item.gstRate || 0),
+            cgstAmount: item.cgstAmount !== null && item.cgstAmount !== undefined ? Number(item.cgstAmount) : null,
+            sgstAmount: item.sgstAmount !== null && item.sgstAmount !== undefined ? Number(item.sgstAmount) : null,
+            igstAmount: item.igstAmount !== null && item.igstAmount !== undefined ? Number(item.igstAmount) : null,
+            totalAmount: Number(item.totalAmount || 0),
           })),
         });
       }

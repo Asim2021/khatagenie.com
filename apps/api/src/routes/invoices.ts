@@ -18,7 +18,7 @@ export async function invoiceRoutes(server: FastifyInstance) {
   server.get('/', async (request, reply) => {
     const orgId = request.user!.organizationId;
     const query = request.query as {
-      status?: InvoiceStatus;
+      status?: InvoiceStatus | string;
       clientId?: string;
       search?: string;
       limit?: string;
@@ -29,9 +29,15 @@ export async function invoiceRoutes(server: FastifyInstance) {
     const offset = Number(query.offset) || 0;
 
     const where: any = { organizationId: orgId };
+    
     if (query.status) {
-      where.status = query.status;
+      if (query.status === InvoiceStatus.NEEDS_REVIEW || query.status === 'NEEDS_REVIEW') {
+        where.status = { in: [InvoiceStatus.NEEDS_REVIEW, InvoiceStatus.PROCESSING, InvoiceStatus.EXTRACTION_FAILED] };
+      } else {
+        where.status = query.status;
+      }
     }
+    
     if (query.clientId) {
       where.clientId = query.clientId;
     }
@@ -70,6 +76,12 @@ export async function invoiceRoutes(server: FastifyInstance) {
         acc[curr.status] = curr._count.id;
         return acc;
       }, {} as Record<string, number>);
+
+      // Combine processing and failed counts into review count for the tab counter
+      countsMap['NEEDS_REVIEW_TOTAL'] = 
+        (countsMap[InvoiceStatus.NEEDS_REVIEW] || 0) + 
+        (countsMap[InvoiceStatus.PROCESSING] || 0) + 
+        (countsMap[InvoiceStatus.EXTRACTION_FAILED] || 0);
 
       return {
         invoices,
@@ -127,6 +139,7 @@ export async function invoiceRoutes(server: FastifyInstance) {
 
     const parseResult = InvoiceUpdateSchema.safeParse(request.body);
     if (!parseResult.success) {
+      console.error('[Invoices PATCH validation error]:', JSON.stringify(parseResult.error.format(), null, 2), 'Body:', JSON.stringify(request.body, null, 2));
       return reply.status(400).send({
         error: 'VALIDATION_ERROR',
         message: 'Invalid invoice update payload.',
@@ -176,17 +189,17 @@ export async function invoiceRoutes(server: FastifyInstance) {
             await tx.invoiceItem.createMany({
               data: data.lineItems.map((item) => ({
                 invoiceId: id,
-                description: item.description,
+                description: item.description || 'Item',
                 hsnCode: item.hsnCode || null,
-                quantity: item.quantity || null,
+                quantity: item.quantity !== null && item.quantity !== undefined ? Number(item.quantity) : null,
                 unit: item.unit || null,
-                unitPrice: item.unitPrice || null,
-                taxableAmount: item.taxableAmount,
-                gstRate: item.gstRate,
-                cgstAmount: item.cgstAmount || null,
-                sgstAmount: item.sgstAmount || null,
-                igstAmount: item.igstAmount || null,
-                totalAmount: item.totalAmount,
+                unitPrice: item.unitPrice !== null && item.unitPrice !== undefined ? Number(item.unitPrice) : null,
+                taxableAmount: Number(item.taxableAmount || 0),
+                gstRate: Number(item.gstRate || 0),
+                cgstAmount: item.cgstAmount !== null && item.cgstAmount !== undefined ? Number(item.cgstAmount) : null,
+                sgstAmount: item.sgstAmount !== null && item.sgstAmount !== undefined ? Number(item.sgstAmount) : null,
+                igstAmount: item.igstAmount !== null && item.igstAmount !== undefined ? Number(item.igstAmount) : null,
+                totalAmount: Number(item.totalAmount || 0),
               })),
             });
           }
@@ -241,6 +254,7 @@ export async function invoiceRoutes(server: FastifyInstance) {
     'image/png',
     'image/webp',
     'image/heic',
+    'image/svg+xml',
     'application/pdf',
   ]);
 
@@ -263,6 +277,38 @@ export async function invoiceRoutes(server: FastifyInstance) {
         });
       }
 
+      // Extract clientId and senderPhone from multipart fields if provided
+      let clientId: string | null = null;
+      let senderPhone = 'DIRECT_WEB_UPLOAD';
+
+      const fields = data.fields as any;
+      if (fields) {
+        if (fields.clientId) {
+          const val = fields.clientId.value || fields.clientId;
+          if (val && typeof val === 'string' && val.trim() !== '') {
+            clientId = val.trim();
+          }
+        }
+        if (fields.senderPhone) {
+          const val = fields.senderPhone.value || fields.senderPhone;
+          if (val && typeof val === 'string' && val.trim() !== '') {
+            senderPhone = val.trim();
+          }
+        }
+      }
+
+      // If clientId was passed, verify it belongs to this organization
+      if (clientId) {
+        const clientExists = await prisma.client.findFirst({
+          where: { id: clientId, organizationId: orgId },
+        });
+        if (!clientExists) {
+          clientId = null;
+        } else if (clientExists.whatsappPhone) {
+          senderPhone = clientExists.whatsappPhone;
+        }
+      }
+
       const buffer = await data.toBuffer();
       const uploadResult = await storageService.saveFile(data.filename, buffer, data.mimetype);
       const fullDiskPath = path.join(process.cwd(), uploadResult.fileUrl);
@@ -279,7 +325,8 @@ export async function invoiceRoutes(server: FastifyInstance) {
         const invoice = await prisma.invoice.create({
           data: {
             organizationId: orgId,
-            senderPhone: 'DIRECT_WEB_UPLOAD',
+            clientId,
+            senderPhone,
             fileUrl: uploadResult.fileUrl,
             fileMimeType: data.mimetype,
             fileSizeBytes: uploadResult.sizeBytes,
@@ -288,10 +335,10 @@ export async function invoiceRoutes(server: FastifyInstance) {
         });
 
         // Enqueue to background worker queue
-        extractionQueue.enqueue(invoice.id, fullDiskPath);
+        extractionQueue.enqueue(invoice.id, fullDiskPath, senderPhone);
 
         return {
-          message: 'File uploaded successfully. Extraction initiated.',
+          message: 'File uploaded successfully. AI OCR extraction initiated.',
           invoiceId: invoice.id,
           fileUrl: uploadResult.fileUrl,
           pageCount: docInfo.pageCount,
@@ -305,4 +352,176 @@ export async function invoiceRoutes(server: FastifyInstance) {
       }
     }
   );
+
+  // 5. DELETE /api/v1/invoices/:id (Delete Single Invoice)
+  server.delete('/:id', async (request, reply) => {
+    const orgId = request.user!.organizationId;
+    const { id } = request.params as { id: string };
+
+    try {
+      const invoice = await prisma.invoice.findFirst({
+        where: { id, organizationId: orgId },
+      });
+
+      if (!invoice) {
+        return reply.status(404).send({
+          error: 'INVOICE_NOT_FOUND',
+          message: 'Invoice not found or already deleted.',
+        });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
+        await tx.invoice.delete({ where: { id } });
+      });
+
+      // Cleanup physical file from storage
+      if (invoice.fileUrl) {
+        await storageService.deleteFile(invoice.fileUrl);
+      }
+
+      return {
+        message: 'Invoice and associated line items deleted successfully.',
+        invoiceId: id,
+      };
+    } catch (err: any) {
+      console.error(`[Invoices] DELETE /:id error: ${err.message}`);
+      return reply.status(500).send({
+        error: 'DATABASE_ERROR',
+        message: 'Failed to delete invoice.',
+      });
+    }
+  });
+
+  // 6. POST /api/v1/invoices/bulk-delete (Bulk Delete Invoices)
+  server.post('/bulk-delete', async (request, reply) => {
+    const orgId = request.user!.organizationId;
+    const { invoiceIds } = request.body as { invoiceIds: string[] };
+
+    if (!Array.isArray(invoiceIds) || invoiceIds.length === 0) {
+      return reply.status(400).send({
+        error: 'VALIDATION_ERROR',
+        message: 'invoiceIds array is required.',
+      });
+    }
+
+    try {
+      // Find matching invoices to delete
+      const invoices = await prisma.invoice.findMany({
+        where: { id: { in: invoiceIds }, organizationId: orgId },
+        select: { id: true, fileUrl: true },
+      });
+
+      if (invoices.length === 0) {
+        return { message: 'No matching invoices found to delete.', count: 0 };
+      }
+
+      const validIds = invoices.map((i) => i.id);
+
+      await prisma.$transaction(async (tx) => {
+        await tx.invoiceItem.deleteMany({ where: { invoiceId: { in: validIds } } });
+        await tx.invoice.deleteMany({ where: { id: { in: validIds } } });
+      });
+
+      // Cleanup physical files
+      for (const inv of invoices) {
+        if (inv.fileUrl) {
+          await storageService.deleteFile(inv.fileUrl);
+        }
+      }
+
+      return {
+        message: `Successfully deleted ${validIds.length} invoice(s).`,
+        count: validIds.length,
+      };
+    } catch (err: any) {
+      console.error(`[Invoices] Bulk delete error: ${err.message}`);
+      return reply.status(500).send({
+        error: 'DATABASE_ERROR',
+        message: 'Failed to delete invoices in bulk.',
+      });
+    }
+  });
+
+  // 7. POST /api/v1/invoices/bulk-status (Bulk Status Update - e.g. Approve / Reject)
+  server.post('/bulk-status', async (request, reply) => {
+    const orgId = request.user!.organizationId;
+    const userId = request.user!.userId;
+    const { invoiceIds, status } = request.body as {
+      invoiceIds: string[];
+      status: InvoiceStatus;
+    };
+
+    if (!Array.isArray(invoiceIds) || invoiceIds.length === 0 || !status) {
+      return reply.status(400).send({
+        error: 'VALIDATION_ERROR',
+        message: 'invoiceIds array and target status are required.',
+      });
+    }
+
+    try {
+      const isReviewing = status === InvoiceStatus.APPROVED || status === InvoiceStatus.REJECTED;
+
+      const result = await prisma.invoice.updateMany({
+        where: { id: { in: invoiceIds }, organizationId: orgId },
+        data: {
+          status: status as any,
+          reviewedById: isReviewing ? userId : undefined,
+          reviewedAt: isReviewing ? new Date() : undefined,
+        },
+      });
+
+      return {
+        message: `Successfully updated ${result.count} invoice(s) to ${status}.`,
+        count: result.count,
+      };
+    } catch (err: any) {
+      console.error(`[Invoices] Bulk status update error: ${err.message}`);
+      return reply.status(500).send({
+        error: 'DATABASE_ERROR',
+        message: 'Failed to update invoice statuses in bulk.',
+      });
+    }
+  });
+
+  // 8. POST /api/v1/invoices/:id/retry-ocr (Re-trigger OCR Extraction)
+  server.post('/:id/retry-ocr', async (request, reply) => {
+    const orgId = request.user!.organizationId;
+    const { id } = request.params as { id: string };
+
+    try {
+      const invoice = await prisma.invoice.findFirst({
+        where: { id, organizationId: orgId },
+      });
+
+      if (!invoice) {
+        return reply.status(404).send({
+          error: 'INVOICE_NOT_FOUND',
+          message: 'Invoice not found.',
+        });
+      }
+
+      await prisma.invoice.update({
+        where: { id },
+        data: {
+          status: InvoiceStatus.PROCESSING,
+          errorMessage: null,
+        },
+      });
+
+      const fullDiskPath = path.join(process.cwd(), invoice.fileUrl);
+      extractionQueue.enqueue(invoice.id, fullDiskPath, invoice.senderPhone || undefined);
+
+      return {
+        message: 'AI OCR Extraction re-queued successfully.',
+        invoiceId: id,
+      };
+    } catch (err: any) {
+      console.error(`[Invoices] Retry OCR error: ${err.message}`);
+      return reply.status(500).send({
+        error: 'DATABASE_ERROR',
+        message: 'Failed to retry OCR extraction.',
+      });
+    }
+  });
 }

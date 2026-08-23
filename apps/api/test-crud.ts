@@ -289,14 +289,74 @@ async function runCrudVerification() {
   const waStatusData = JSON.parse(waStatusRes.body);
   console.log(`[WHATSAPP - STATUS] Result: status="${waStatusData.status}", configured=${waStatusData.configured}, message="${waStatusData.message}"`);
 
-  // 7. CLEAN UP TEST DATA
-  console.log('\n--- 7. Cleaning Up Test Data ---');
-  await prisma.invoiceItem.deleteMany({ where: { invoiceId: seededInvoice.id } });
-  await prisma.invoice.delete({ where: { id: seededInvoice.id } });
-  await prisma.client.delete({ where: { id: createdClient.id } });
-  console.log('🧹 Cleaned up test invoice and test client from database.');
+  // 7. TESTING DELETE & BULK ACTIONS
+  console.log('\n--- 7. Testing Single Delete, Bulk Delete, and Bulk Status ---');
+  
+  // Seed two more invoices for bulk operations
+  const inv1 = await prisma.invoice.create({
+    data: {
+      organizationId: loginData.user.organizationId,
+      clientId: createdClient.id,
+      senderPhone: '919811998877',
+      fileUrl: '/uploads/bulk_test_1.jpg',
+      fileMimeType: 'image/jpeg',
+      fileSizeBytes: 1024,
+      status: 'NEEDS_REVIEW',
+      invoiceNumber: 'BULK-001',
+    },
+  });
+  const inv2 = await prisma.invoice.create({
+    data: {
+      organizationId: loginData.user.organizationId,
+      clientId: createdClient.id,
+      senderPhone: '919811998877',
+      fileUrl: '/uploads/bulk_test_2.jpg',
+      fileMimeType: 'image/jpeg',
+      fileSizeBytes: 1024,
+      status: 'NEEDS_REVIEW',
+      invoiceNumber: 'BULK-002',
+    },
+  });
 
-  console.log('\n🎉 ALL DATABASE CRUD, DUAL-TOKEN AUTH & EXPORT ENDPOINTS FULLY VERIFIED AND PASSING (100%)!');
+  // Test Bulk Status
+  const bulkStatusRes = await app.inject({
+    method: 'POST',
+    url: '/api/v1/invoices/bulk-status',
+    headers: authHeaders,
+    payload: {
+      invoiceIds: [inv1.id, inv2.id],
+      status: 'APPROVED',
+    },
+  });
+  console.log(`[INVOICES - BULK STATUS] POST /api/v1/invoices/bulk-status -> Status: ${bulkStatusRes.statusCode}`);
+  if (bulkStatusRes.statusCode !== 200) throw new Error('Bulk status update failed');
+
+  // Test Bulk Delete
+  const bulkDeleteRes = await app.inject({
+    method: 'POST',
+    url: '/api/v1/invoices/bulk-delete',
+    headers: authHeaders,
+    payload: {
+      invoiceIds: [inv1.id, inv2.id],
+    },
+  });
+  console.log(`[INVOICES - BULK DELETE] POST /api/v1/invoices/bulk-delete -> Status: ${bulkDeleteRes.statusCode}`);
+  if (bulkDeleteRes.statusCode !== 200) throw new Error('Bulk delete failed');
+
+  // Test Single Delete on seeded invoice
+  const deleteSingleRes = await app.inject({
+    method: 'DELETE',
+    url: `/api/v1/invoices/${seededInvoice.id}`,
+    headers: authHeaders,
+  });
+  console.log(`[INVOICES - SINGLE DELETE] DELETE /api/v1/invoices/${seededInvoice.id} -> Status: ${deleteSingleRes.statusCode}`);
+  if (deleteSingleRes.statusCode !== 200) throw new Error('Single delete failed');
+
+  // Clean up client
+  await prisma.client.delete({ where: { id: createdClient.id } });
+  console.log('🧹 Cleaned up test client from database.');
+
+  console.log('\n🎉 ALL DATABASE CRUD, DUAL-TOKEN AUTH, DELETE & BULK ENDPOINTS FULLY VERIFIED AND PASSING (100%)!');
 }
 
 runCrudVerification()

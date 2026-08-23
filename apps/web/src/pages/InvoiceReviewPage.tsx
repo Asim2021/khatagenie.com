@@ -9,7 +9,11 @@ import {
   Building2, 
   Hash,
   Image as ImageIcon,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Trash2,
+  RefreshCw,
+  Loader2,
+  AlertCircle
 } from '../components/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ImageViewer } from '../components/ImageViewer';
@@ -42,13 +46,14 @@ export const InvoiceReviewPage: React.FC = () => {
   const [reviewNotes, setReviewNotes] = useState<string>('');
   const [lineItems, setLineItems] = useState<any[]>([]);
 
-  // 1. TanStack Query for Invoice Data
+  // 1. TanStack Query for Invoice Data (with smart polling if processing)
   const { data: invoice, isLoading } = useQuery({
     queryKey: ['invoice', id],
     queryFn: async () => {
       return await fetchApi<any>(`/invoices/${id}`);
     },
     enabled: !!id,
+    refetchInterval: (query) => (query.state.data?.status === 'PROCESSING' ? 2000 : false),
   });
 
   // 2. TanStack Query for MSME Clients
@@ -140,6 +145,41 @@ export const InvoiceReviewPage: React.FC = () => {
     },
   });
 
+  // 4. Delete Invoice Mutation
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return await fetchApi(`/invoices/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
+      showToast('Invoice deleted successfully.', 'info');
+      navigate('/');
+    },
+    onError: (err: any) => {
+      showToast(`Delete failed: ${err.message}`, 'error');
+    },
+  });
+
+  // 5. Retry OCR Mutation
+  const retryOcrMutation = useMutation({
+    mutationFn: async () => {
+      return await fetchApi(`/invoices/${id}/retry-ocr`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoice', id] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      showToast('AI OCR extraction re-queued with Gemini Flash!', 'info');
+    },
+    onError: (err: any) => {
+      showToast(`Retry failed: ${err.message}`, 'error');
+    },
+  });
+
   // Keyboard Shortcuts (Cmd/Ctrl + Enter to Approve)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -155,10 +195,19 @@ export const InvoiceReviewPage: React.FC = () => {
   const handleApprove = () => saveMutation.mutate(InvoiceStatus.APPROVED);
   const handleReject = () => saveMutation.mutate(InvoiceStatus.REJECTED);
 
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to permanently delete this invoice? This action cannot be undone.')) {
+      deleteMutation.mutate();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-64px)] flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-xs font-medium">
-        Loading invoice scan & structured data...
+        <div className="flex items-center space-x-2">
+          <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+          <span>Loading invoice scan & structured data...</span>
+        </div>
       </div>
     );
   }
@@ -216,7 +265,18 @@ export const InvoiceReviewPage: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-2 sm:space-x-3 ml-auto">
+        <div className="flex items-center space-x-2 sm:space-x-2.5 ml-auto">
+          {/* Delete Button */}
+          <button
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+            title="Delete this invoice"
+            className="p-2 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-900 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+
+          {/* Reject */}
           <button
             onClick={handleReject}
             disabled={saveMutation.isPending}
@@ -226,6 +286,7 @@ export const InvoiceReviewPage: React.FC = () => {
             <span className="hidden xs:inline">Reject</span>
           </button>
 
+          {/* Approve */}
           <button
             onClick={handleApprove}
             disabled={saveMutation.isPending}
@@ -258,6 +319,53 @@ export const InvoiceReviewPage: React.FC = () => {
             mobileActiveView === 'form' ? 'block' : 'hidden lg:block'
           }`}
         >
+          {/* Status Processing Alert */}
+          {invoice?.status === 'PROCESSING' && (
+            <div className="p-4 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 flex items-center justify-between shadow-sm">
+              <div className="flex items-center space-x-3">
+                <Loader2 className="w-5 h-5 text-sky-600 dark:text-sky-400 animate-spin shrink-0" />
+                <div>
+                  <h4 className="text-xs font-bold text-sky-900 dark:text-sky-200">
+                    Gemini Flash AI OCR In Progress
+                  </h4>
+                  <p className="text-[11px] text-sky-700 dark:text-sky-300 mt-0.5">
+                    Analyzing tax heads, line items, and math parity. This screen will update automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Status Failed Alert with Retry */}
+          {invoice?.status === 'EXTRACTION_FAILED' && (
+            <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-start space-x-2.5">
+                <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-xs font-bold text-rose-900 dark:text-rose-200">
+                    AI OCR Extraction Failed
+                  </h4>
+                  <p className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5">
+                    {invoice?.errorMessage || 'Vision model could not parse bill. You can edit fields manually or retry extraction.'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => retryOcrMutation.mutate()}
+                disabled={retryOcrMutation.isPending}
+                className="btn-primary space-x-1.5 text-xs py-1.5 px-3 shrink-0"
+              >
+                {retryOcrMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                <span>Retry Gemini OCR</span>
+              </button>
+            </div>
+          )}
+
           {/* Live Mathematical Parity Check Banner */}
           <div
             className={`p-3.5 rounded-2xl border flex items-center justify-between shadow-sm transition-colors ${
@@ -329,6 +437,7 @@ export const InvoiceReviewPage: React.FC = () => {
                   value={supplierName}
                   onChange={(e) => setSupplierName(e.target.value)}
                   className="input-field font-bold"
+                  placeholder="e.g. Sunrise Enterprise"
                 />
               </div>
 
@@ -355,30 +464,25 @@ export const InvoiceReviewPage: React.FC = () => {
                   maxLength={15}
                   value={supplierGstin}
                   onChange={(e) => setSupplierGstin(e.target.value.toUpperCase())}
-                  className={`input-field font-mono ${
-                    isGstinValid
-                      ? 'border-emerald-500/50 focus:border-emerald-500'
-                      : supplierGstin
-                      ? 'border-rose-500/60 focus:border-rose-500 focus:ring-rose-500/15'
-                      : ''
-                  }`}
+                  className="input-field font-mono uppercase"
+                  placeholder="07AAAAA0000A1Z5"
                 />
               </div>
 
-              {/* Invoice Number & Date */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {/* Invoice Number & Date Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Invoice / Bill Number
+                    Bill / Invoice #
                   </label>
                   <input
                     type="text"
                     value={invoiceNumber}
                     onChange={(e) => setInvoiceNumber(e.target.value)}
-                    className="input-field font-mono"
+                    className="input-field font-mono font-bold"
+                    placeholder="INV-2026/01"
                   />
                 </div>
-
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Invoice Date
@@ -387,115 +491,136 @@ export const InvoiceReviewPage: React.FC = () => {
                     type="date"
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
-                    className="input-field font-mono"
+                    className="input-field"
                   />
                 </div>
+              </div>
+
+              {/* Invoice Type */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Voucher / Invoice Classification
+                </label>
+                <select
+                  value={invoiceType}
+                  onChange={(e) => setInvoiceType(e.target.value)}
+                  className="select-field"
+                >
+                  <option value="B2B_TAX_INVOICE">B2B Tax Invoice (Standard ITC)</option>
+                  <option value="B2C_RETAIL_INVOICE">B2C Retail Invoice (Consumer Bill)</option>
+                  <option value="BILL_OF_SUPPLY">Bill of Supply (Exempt / Composition)</option>
+                  <option value="EXPENSE_VOUCHER">Expense / Petty Cash Voucher</option>
+                  <option value="CREDIT_NOTE">Credit Note</option>
+                  <option value="DEBIT_NOTE">Debit Note</option>
+                </select>
               </div>
             </div>
           </div>
 
-          {/* Tax Breakdown & Accounting Card with Double-Bezel */}
+          {/* Financial Breakdown Card with Double-Bezel */}
           <div className="rounded-2xl p-1 bg-slate-200/60 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
             <div className="rounded-xl bg-white dark:bg-slate-900 p-4 sm:p-5 border border-slate-100 dark:border-slate-800/60 shadow-inner-glow space-y-3.5">
               <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Hash className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                Tax Breakdown & Accounting Ledgers
+                Tax Amounts & Totals (INR)
               </h3>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Taxable Value (₹)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={taxableAmount}
-                    onChange={(e) => setTaxableAmount(parseFloat(e.target.value) || 0)}
-                    className="input-field font-mono"
-                  />
-                </div>
+              {/* Taxable Amount */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Taxable Value (₹)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={taxableAmount || ''}
+                  onChange={(e) => setTaxableAmount(parseFloat(e.target.value) || 0)}
+                  className="input-field font-mono font-bold"
+                />
+              </div>
 
+              {/* Tax Heads (CGST, SGST, IGST) */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[10px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     CGST (₹)
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    value={cgstAmount}
+                    value={cgstAmount || ''}
                     onChange={(e) => setCgstAmount(parseFloat(e.target.value) || 0)}
-                    className="input-field font-mono"
+                    className="input-field font-mono text-xs sm:text-sm"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[10px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     SGST (₹)
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    value={sgstAmount}
+                    value={sgstAmount || ''}
                     onChange={(e) => setSgstAmount(parseFloat(e.target.value) || 0)}
-                    className="input-field font-mono"
+                    className="input-field font-mono text-xs sm:text-sm"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[10px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     IGST (₹)
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    value={igstAmount}
+                    value={igstAmount || ''}
                     onChange={(e) => setIgstAmount(parseFloat(e.target.value) || 0)}
-                    className="input-field font-mono"
+                    className="input-field font-mono text-xs sm:text-sm"
                   />
                 </div>
+              </div>
 
+              {/* Round Off & Total */}
+              <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Round Off (₹)
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    value={roundOffAmount}
+                    value={roundOffAmount || ''}
                     onChange={(e) => setRoundOffAmount(parseFloat(e.target.value) || 0)}
-                    className="input-field font-mono"
+                    className="input-field font-mono text-xs"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-[11px] font-black text-emerald-700 dark:text-emerald-400 mb-1">
-                    Grand Total (₹)
+                  <label className="block text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mb-1.5">
+                    Total Bill Amount (₹)
                   </label>
                   <input
                     type="number"
                     step="0.01"
-                    value={totalAmount}
+                    value={totalAmount || ''}
                     onChange={(e) => setTotalAmount(parseFloat(e.target.value) || 0)}
-                    className="input-field font-mono font-black text-emerald-700 dark:text-emerald-400 border-emerald-500/50"
+                    className="input-field font-mono font-black text-base bg-emerald-500/5 border-emerald-500/30 text-emerald-900 dark:text-emerald-300"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Review Notes */}
+          {/* CA Review Notes */}
           <div className="rounded-2xl p-1 bg-slate-200/60 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
-            <div className="rounded-xl bg-white dark:bg-slate-900 p-4 border border-slate-100 dark:border-slate-800/60 shadow-inner-glow space-y-2">
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                CA Internal Audit / Review Notes
+            <div className="rounded-xl bg-white dark:bg-slate-900 p-4 border border-slate-100 dark:border-slate-800/60 shadow-inner-glow">
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                CA Review Notes / Tally Ledger Remarks
               </label>
               <textarea
                 rows={2}
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
-                placeholder="e.g. Verified with physical invoice copy, GSTIN active on portal..."
-                className="input-field"
+                placeholder="Add optional notes for your audit trail or ledger mapping..."
+                className="input-field text-xs resize-none"
               />
             </div>
           </div>
@@ -504,4 +629,3 @@ export const InvoiceReviewPage: React.FC = () => {
     </div>
   );
 };
-
