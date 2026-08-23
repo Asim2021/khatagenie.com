@@ -31,6 +31,7 @@ export const LoginPage: React.FC = () => {
   const [firmName, setFirmName] = useState('Bansal & Associates CA');
   const [fullName, setFullName] = useState('CA Rajesh Bansal, FCA');
   const [phone, setPhone] = useState('9811000000');
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const { login } = useAuth();
@@ -50,14 +51,14 @@ export const LoginPage: React.FC = () => {
         const cleanPhone = phone.trim().startsWith('91') ? phone.trim() : `91${phone.trim()}`;
         const res = await fetchApi<{ token: string; user: any }>('/auth/register', {
           method: 'POST',
-          body: JSON.stringify({ firmName, fullName, email, password, phone: cleanPhone }),
+          body: JSON.stringify({ firmName, fullName, email, password, phone: cleanPhone, rememberMe }),
         });
         login(res.token, res.user);
         showToast(`Welcome ${res.user.fullName} to KhataGenie!`, 'success');
       } else {
         const res = await fetchApi<{ token: string; user: any }>('/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, rememberMe }),
         });
         login(res.token, res.user);
         showToast(`Signed in as ${res.user.fullName}`, 'success');
@@ -341,6 +342,21 @@ export const LoginPage: React.FC = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+              </div>
+
+              {/* Remember Me Option */}
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center space-x-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="checkbox-custom"
+                  />
+                  <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                    Remember this device <span className="text-[11px] text-slate-400 dark:text-slate-500">(7-day session)</span>
+                  </span>
+                </label>
               </div>
 
               <button

@@ -2,6 +2,7 @@ import fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
+import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
@@ -54,6 +55,11 @@ async function buildServer() {
 
   await server.register(helmet, {
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+  });
+
+  await server.register(cookie, {
+    secret: env.JWT_SECRET,
+    parseOptions: {},
   });
 
   await server.register(jwt, {

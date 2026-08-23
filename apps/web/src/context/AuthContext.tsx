@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AuthUser, FeatureFlagKey, TIER_FEATURE_DEFAULTS, SubscriptionTier } from '@khatagenie/types';
+import React, { createContext, useContext, useEffect } from 'react';
+import { AuthUser, FeatureFlagKey } from '@khatagenie/types';
+import { useAuthStore } from '../store/authStore';
 import { fetchApi } from '../lib/api';
 
 interface AuthContextType {
@@ -7,7 +8,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (token: string, user: AuthUser) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   isFeatureEnabled: (flag: FeatureFlagKey) => boolean;
   toggleFeatureOverride: (flag: FeatureFlagKey, enabled: boolean) => void;
 }
@@ -15,92 +16,43 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('kg_token'));
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    const saved = localStorage.getItem('kg_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {}
-    }
-    return null;
-  });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [featureOverrides, setFeatureOverrides] = useState<Record<string, boolean>>(() => {
-    const savedOverrides = localStorage.getItem('kg_feature_overrides');
-    if (savedOverrides) {
-      try {
-        return JSON.parse(savedOverrides);
-      } catch {}
-    }
-    const savedUser = localStorage.getItem('kg_user');
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        return parsed.featureOverrides || parsed.features || {};
-      } catch {}
-    }
-    return {};
-  });
+  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const isFeatureEnabled = useAuthStore((state) => state.isFeatureEnabled);
+  const toggleFeatureOverride = useAuthStore((state) => state.toggleFeatureOverride);
 
+  // Silent session boot on app launch / browser refresh via httpOnly refresh cookie
   useEffect(() => {
-    async function loadProfile() {
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
+    async function initSession() {
       try {
-        const res = await fetchApi<{ user: any }>('/auth/me');
-        setUser(res.user);
-        localStorage.setItem('kg_user', JSON.stringify(res.user));
-        if (res.user.featureOverrides) {
-          setFeatureOverrides((prev) => ({ ...res.user.featureOverrides, ...prev }));
+        const res = await fetchApi<{ token: string; user: AuthUser }>('/auth/refresh', {
+          method: 'POST',
+        });
+        if (res.token && res.user) {
+          setAuth(res.token, res.user);
+        } else {
+          clearAuth();
         }
-      } catch (err) {
-        console.warn('Failed to restore session from API:', err);
-      } finally {
-        setIsLoading(false);
+      } catch {
+        clearAuth();
       }
     }
 
-    loadProfile();
-  }, [token]);
+    initSession();
+  }, [setAuth, clearAuth]);
 
   const login = (newToken: string, newUser: AuthUser) => {
-    localStorage.setItem('kg_token', newToken);
-    localStorage.setItem('kg_user', JSON.stringify(newUser));
-    setToken(newToken);
-    setUser(newUser);
-    const overrides = newUser.featureOverrides || (newUser as any).features || {};
-    setFeatureOverrides(overrides);
-    localStorage.setItem('kg_feature_overrides', JSON.stringify(overrides));
+    setAuth(newToken, newUser);
   };
 
-  const logout = () => {
-    localStorage.removeItem('kg_token');
-    localStorage.removeItem('kg_user');
-    localStorage.removeItem('kg_feature_overrides');
-    setToken(null);
-    setUser(null);
-    setFeatureOverrides({});
-  };
-
-  const isFeatureEnabled = (flag: FeatureFlagKey): boolean => {
-    if (flag in featureOverrides) {
-      return Boolean(featureOverrides[flag]);
-    }
-    const tier = (user?.subscriptionTier as SubscriptionTier) || 'free';
-    const defaults = TIER_FEATURE_DEFAULTS[tier] || TIER_FEATURE_DEFAULTS.free;
-    return Boolean(defaults[flag]);
-  };
-
-  const toggleFeatureOverride = (flag: FeatureFlagKey, enabled: boolean) => {
-    setFeatureOverrides((prev) => {
-      const next = { ...prev, [flag]: enabled };
-      localStorage.setItem('kg_feature_overrides', JSON.stringify(next));
-      return next;
-    });
+  const logout = async () => {
+    try {
+      await fetchApi('/auth/logout', { method: 'POST' });
+    } catch {}
+    clearAuth();
   };
 
   return (

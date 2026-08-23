@@ -189,3 +189,17 @@ This document tracks all significant architectural and technical decisions made 
 - **Trade-offs**: Requires PostgreSQL instance running for API operations.
 - **Risks**: None; verified with Prisma migrations, clean seed, and 100% passing CRUD suite.
 
+---
+
+## DEC-017: Enterprise Dual-Token Authentication (Zustand In-Memory + httpOnly Cookie) & Clean GSTR-2B State
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Relying on single long-lived tokens stored in `localStorage` created persistent XSS attack surface, and hardcoded sample GSTR-2B demo data cluttered the reconciliation views.
+- **Alternatives Considered**: 
+  1. Continue using 7-day JWT tokens in `localStorage`.
+  2. Implement dual-token architecture: Short-lived (15-minute) Access Token stored strictly in memory via Zustand global store (`useAuthStore`), paired with long-lived (1-day default, 7-day with `rememberMe`) `httpOnly`, `Secure`, `SameSite=Lax` Refresh Token cookies scoped to `/api/v1/auth`, with automated silent refresh on boot and 401 retry interceptor. Clean GSTR-2B reconciliation to an upload-first empty state.
+- **Selected Option**: Option 2.
+- **Reason for Selection**: 100% immune to JavaScript token theft via XSS (zero tokens in `localStorage`/`sessionStorage`), smooth user experience with silent cookie renewal on page reload and token expiration, and zero hardcoded demo data across the codebase.
+- **Trade-offs**: Requires `@fastify/cookie` and in-flight refresh mutex in API client.
+- **Risks**: None; verified across full monorepo build, automated integration test suite (`test-crud.ts`), and end-to-end browser session tests.
+

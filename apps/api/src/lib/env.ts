@@ -10,6 +10,7 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/khatagenie?schema=public'),
   JWT_SECRET: z.string().min(16).default('khatagenie_super_secure_jwt_secret_2026_delhi'),
+  JWT_REFRESH_SECRET: z.string().min(16).default('khatagenie_super_secure_jwt_refresh_secret_2026_delhi'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
   // AI Vision

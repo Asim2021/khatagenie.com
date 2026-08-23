@@ -5,6 +5,8 @@ export interface AuthenticatedUser {
   organizationId: string;
   role: string;
   email: string;
+  type?: string;
+  rememberMe?: boolean;
 }
 
 declare module '@fastify/jwt' {

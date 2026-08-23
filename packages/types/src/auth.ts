@@ -10,6 +10,7 @@ export enum UserRole {
 export const LoginRequestSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;

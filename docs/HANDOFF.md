@@ -1,26 +1,34 @@
 # Session Handoff: KhataGenie.com
 
-**Current Objective**: Docker PostgreSQL Database Connected, Schema Migrations Applied, Pure Database Architecture (Zero Mock Data), 1 Admin & 1 End User Seeded, 100% Verified CRUD Endpoints.
+**Current Objective**: Enterprise Dual-Token Authentication (Zustand In-Memory + httpOnly Cookie), Zero Hardcoded Mock Data, Live PostgreSQL Container Connected, 100% Verified Full Monorepo Build & Integration Tests.
 
 **Current State**:
 - Full monorepo stack is 100% built, tested, and verified across all 4 packages (`types`, `shared`, `api`, `web`).
-- Docker PostgreSQL Container (`localhost:5432`, `root` / `Asim@123`) is connected and synchronized with Prisma.
-- Initial migration `20260823000000_init` created and applied.
-- Database seeded with exactly:
-  - 1 Admin User: `admin@khatagenie.com` / `Asim@123` (Role: `CA_ADMIN`)
-  - 1 End User: `user@khatagenie.com` / `Asim@123` (Role: `CA_STAFF`)
-  - Zero hardcoded mock invoices / clients / receipts.
-- All application routes, services, and web UI pages stripped of in-memory fallback mocks.
-- `apps/api/test-crud.ts` passes 100% against live PostgreSQL database queries.
+- **Dual-Token Authentication**:
+  - **Access Token**: 15-minute rotation, stored exclusively in-memory via **Zustand store** (`useAuthStore`). **Zero tokens stored in `localStorage` or `sessionStorage`**.
+  - **Refresh Token**: `httpOnly`, `Secure`, `SameSite=Lax`, `Path=/api/v1/auth` cookie.
+  - **Remember Me**: 1-day TTL by default, extended to 7-days when checkbox is checked on login.
+  - **Silent Boot Refresh & 401 Interceptor**: `fetchApi` transparently refreshes access token on page load / expiration with in-flight promise mutex.
+  - **Logout**: `POST /api/v1/auth/logout` clears refresh cookie and resets in-memory Zustand store.
+- **Zero Hardcoded Data**:
+  - `GET /reconciliation/sample` removed; GSTR-2B reconciliation is 100% upload-driven with 3-step guide and live database matching.
+  - All mock arrays and fallback stores purged across all API routes and UI pages.
+- **Database & Users**:
+  - Docker PostgreSQL Container (`localhost:5432`, `root` / `Asim@123`) synchronized with Prisma initial migration.
+  - Seeded with 1 Admin User (`admin@khatagenie.com` / `Asim@123`) and 1 Staff User (`user@khatagenie.com` / `Asim@123`).
+- **Verification Evidence**:
+  - `npx tsx apps/api/test-crud.ts`: 100% Passed.
+  - `npm run build`: 100% Passed (all monorepo workspaces).
+  - Playwright browser test recording: `dual_token_auth_verified_1787487567059.webp`.
 
 **Recently Completed**:
-- Updated `.env` and `apps/api/.env` with PostgreSQL connection string.
-- Created `apps/api/prisma/migrations/20260823000000_init/migration.sql` and applied with Prisma.
-- Updated `apps/api/prisma/seed.ts` and seeded the 2 users.
-- Cleaned `apps/api/src/routes/auth.ts`, `clients.ts`, `invoices.ts`, `exports.ts`, and `gstr2bReconciliation.ts`.
-- Cleaned `apps/web/src/pages/ClientsPage.tsx`, `InboxPage.tsx`, `InvoiceReviewPage.tsx`, and `LoginPage.tsx`.
-- Updated `test-crud.ts` to dynamically seed and clean up test fixtures against PostgreSQL.
-- Verified with `npx tsx apps/api/test-crud.ts` (100% pass) and `npm run build` (100% pass).
+- Installed `@fastify/cookie@9` and `zustand`.
+- Updated `apps/api/src/routes/auth.ts` with 15m access token, httpOnly refresh cookie, `/refresh`, and `/logout`.
+- Updated `apps/api/src/routes/reconciliation.ts` removing sample route.
+- Created `apps/web/src/store/authStore.ts` with Zustand.
+- Updated `apps/web/src/lib/api.ts` and `apps/web/src/context/AuthContext.tsx`.
+- Updated `apps/web/src/pages/Gstr2bReconPage.tsx` and `LoginPage.tsx`.
+- Created `walkthrough.md` and updated `DEC-017`.
 
 **Open Problems**:
 - None.
@@ -32,13 +40,13 @@
 - `DEC-014`: Fluid Full-Width Container Layout, Header Popover Encapsulation & Synchronized Responsive Breakpoints.
 - `DEC-015`: Dynamic Backend WhatsApp Connection Health Probe & Tri-State UI Status Architecture.
 - `DEC-016`: PostgreSQL Container Integration, Zero Hardcoded Mock Data & Database-First Testing Architecture.
+- `DEC-017`: Enterprise Dual-Token Authentication (Zustand In-Memory + httpOnly Cookie) & Clean GSTR-2B State.
 
 **Things the Next Agent Should Know**:
-- Start backend in development with `npm run dev:api`.
+- Start backend with `npm run dev:api`.
 - Start frontend with `npm run dev:web`.
 - Seed database at any time with `npx tsx apps/api/prisma/seed.ts`.
-- Run full database CRUD verification with `npx tsx apps/api/test-crud.ts`.
-- Run shared unit tests with `npx tsx packages/shared/test-verify.ts`.
+- Run full database CRUD & auth verification with `npx tsx apps/api/test-crud.ts`.
 - Build all packages with `npm run build`.
 
 **Recommended Next Actions**:

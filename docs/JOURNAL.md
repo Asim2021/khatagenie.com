@@ -259,6 +259,24 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
     - Updated `apps/api/test-crud.ts` to test against real PostgreSQL records (seeding test fixtures during verification and cleaning up).
     - Executed `test-crud.ts` (100% Passed) and `npm run build` (100% Passed across all monorepo packages).
 
+  - Implemented Phase 17: Enterprise Dual-Token Auth (Zustand In-Memory + httpOnly Cookie) & Zero GSTR-2B Mock Data:
+    - Installed `@fastify/cookie@9` in `apps/api` and registered it on Fastify.
+    - Added `JWT_REFRESH_SECRET` and cookie parsing to backend environment.
+    - Updated `apps/api/src/routes/auth.ts`:
+      - Issues 15-minute access token (`expiresIn: '15m'`).
+      - Issues httpOnly secure refresh token cookie (1 day default, 7 days if `rememberMe === true`).
+      - Created `POST /api/v1/auth/refresh` for rotating access tokens and refresh cookies.
+      - Created `POST /api/v1/auth/logout` to clear refresh cookie.
+    - Cleaned `apps/api/src/routes/reconciliation.ts`: removed `GET /reconciliation/sample` and hardcoded `sampleGstr2b` JSON dataset.
+    - Installed `zustand` in `apps/web` and created `useAuthStore` in `apps/web/src/store/authStore.ts` (0 tokens in `localStorage`).
+    - Updated `apps/web/src/lib/api.ts` with `credentials: 'include'`, Zustand token attachment, and automated 401 silent refresh retry interceptor with promise mutex.
+    - Refactored `apps/web/src/context/AuthContext.tsx` to bind to `useAuthStore` and execute silent session boot via `/auth/refresh` on app load.
+    - Converted `apps/web/src/pages/Gstr2bReconPage.tsx` to clean 3-step upload-first empty state without hardcoded mock summary.
+    - Added "Remember this device (7-day session)" checkbox to `LoginPage.tsx`.
+    - Executed `npx tsx apps/api/test-crud.ts` (100% Passed).
+    - Executed `npm run build` (100% Passed across monorepo).
+    - Executed Playwright browser verification recording `dual_token_auth_verified_1787487567059.webp` verifying login, in-memory Zustand auth, clean GSTR-2B empty state, F5 page reload session persistence, and logout route guard.
+
 ### Next Actions
 - Connect live Meta WhatsApp Cloud API credentials in `.env` for physical phone message testing.
 - Deploy to Railway production environment.

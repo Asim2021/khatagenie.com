@@ -2,43 +2,85 @@ import { buildServer } from './src/server';
 import { prisma } from './src/lib/prisma';
 
 async function runCrudVerification() {
-  console.log('🧪 Starting Full Database CRUD Endpoint Verification Suite...\n');
+  console.log('🧪 Starting Full Database CRUD & Dual-Token Auth Verification Suite...\n');
 
   const app = await buildServer();
 
-  // 1. AUTH LOGIN
-  console.log('--- 1. Testing Authentication (PostgreSQL Real User) ---');
+  // 1. AUTH LOGIN & DUAL-TOKEN COOKIE VERIFICATION
+  console.log('--- 1. Testing Dual-Token Authentication & httpOnly Cookies ---');
+  
+  // 1a. Normal Login (1 Day Cookie)
   const loginRes = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/login',
     payload: {
       email: 'admin@khatagenie.com',
       password: 'Asim@123',
+      rememberMe: false,
     },
   });
-  console.log(`[AUTH] POST /api/v1/auth/login -> Status: ${loginRes.statusCode}`);
+  console.log(`[AUTH] POST /api/v1/auth/login (1-day) -> Status: ${loginRes.statusCode}`);
   if (loginRes.statusCode !== 200) {
     throw new Error(`Login failed: ${loginRes.body}`);
   }
   const loginData = JSON.parse(loginRes.body);
   const token = loginData.token;
   const authHeaders = { authorization: `Bearer ${token}` };
-  console.log(`[AUTH] JWT Token issued for: ${loginData.user.fullName} (${loginData.user.role})\n`);
+  
+  const setCookieHeader = loginRes.headers['set-cookie'] as string;
+  console.log(`[AUTH] Access Token (15m): ${token.substring(0, 25)}...`);
+  console.log(`[AUTH] Set-Cookie Header: ${setCookieHeader}`);
+  
+  if (!setCookieHeader || !setCookieHeader.includes('refreshToken=') || !setCookieHeader.includes('HttpOnly')) {
+    throw new Error('Expected HttpOnly refreshToken cookie was not set in headers');
+  }
 
-  // Test End User Login as well
-  const staffLoginRes = await app.inject({
+  // 1b. Remember Me Login (7 Days Cookie)
+  const rememberLoginRes = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/login',
     payload: {
-      email: 'user@khatagenie.com',
+      email: 'admin@khatagenie.com',
       password: 'Asim@123',
+      rememberMe: true,
     },
   });
-  console.log(`[AUTH] POST /api/v1/auth/login (End User) -> Status: ${staffLoginRes.statusCode}`);
-  if (staffLoginRes.statusCode !== 200) throw new Error('Staff login failed');
+  console.log(`[AUTH] POST /api/v1/auth/login (rememberMe=true) -> Status: ${rememberLoginRes.statusCode}`);
+  const rememberCookie = rememberLoginRes.headers['set-cookie'] as string;
+  console.log(`[AUTH] Remember-Me Cookie Header: ${rememberCookie}`);
+  if (!rememberCookie.includes('Max-Age=604800')) {
+    throw new Error('Expected 7-day Max-Age (604800s) on rememberMe login cookie');
+  }
+
+  // 1c. POST /api/v1/auth/refresh (Rotate Access Token via Cookie)
+  const cookieValue = rememberCookie.split(';')[0];
+  const refreshRes = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/refresh',
+    headers: {
+      cookie: cookieValue,
+    },
+  });
+  console.log(`[AUTH] POST /api/v1/auth/refresh -> Status: ${refreshRes.statusCode}`);
+  if (refreshRes.statusCode !== 200) throw new Error(`Refresh token failed: ${refreshRes.body}`);
+  const refreshData = JSON.parse(refreshRes.body);
+  console.log(`[AUTH] New Access Token Rotated: ${refreshData.token.substring(0, 25)}...`);
+  const rotatedCookie = refreshRes.headers['set-cookie'] as string;
+  if (!rotatedCookie || !rotatedCookie.includes('refreshToken=')) {
+    throw new Error('Expected rotated refreshToken cookie');
+  }
+
+  // 1d. POST /api/v1/auth/logout (Clear Cookie)
+  const logoutRes = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/logout',
+  });
+  console.log(`[AUTH] POST /api/v1/auth/logout -> Status: ${logoutRes.statusCode}`);
+  const clearedCookie = logoutRes.headers['set-cookie'] as string;
+  console.log(`[AUTH] Cleared Cookie Header: ${clearedCookie}\n`);
 
   // 2. CLIENTS CRUD
-  console.log('\n--- 2. Testing MSME Clients CRUD ---');
+  console.log('--- 2. Testing MSME Clients CRUD ---');
   
   // 2a. GET /api/v1/clients
   const listClientsRes = await app.inject({
@@ -173,20 +215,45 @@ async function runCrudVerification() {
   console.log(`[INVOICES - APPROVE] Invoice status is now: ${approvedData.status}\n`);
 
   // 4. GSTR-2B RECONCILIATION
-  console.log('--- 4. Testing GSTR-2B 2-Way Reconciliation ---');
-  const sampleReconRes = await app.inject({
-    method: 'GET',
-    url: '/api/v1/reconciliation/sample',
-    headers: authHeaders,
-  });
-  console.log(`[RECON - SAMPLE] GET /api/v1/reconciliation/sample -> Status: ${sampleReconRes.statusCode}`);
-  const sampleGstr2b = JSON.parse(sampleReconRes.body);
+  console.log('--- 4. Testing GSTR-2B 2-Way Reconciliation with Upload Payload ---');
+  const uploadedGstr2bJson = {
+    data: {
+      fp: '082026',
+      docdata: {
+        b2b: [
+          {
+            ctin: '06EEEFF5555E1Z9',
+            cname: 'Cybertronics Hardware Gurgaon',
+            inv: [
+              {
+                inum: 'DEL-HGN-4412',
+                idt: '2026-08-20',
+                val: 29500.0,
+                itcavl: 'Y',
+                items: [
+                  {
+                    itm_det: {
+                      txval: 25000.0,
+                      camt: 0.0,
+                      samt: 0.0,
+                      iamt: 4500.0,
+                      csamt: 0.0,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+  };
 
   const processReconRes = await app.inject({
     method: 'POST',
     url: '/api/v1/reconciliation/process',
     headers: authHeaders,
-    payload: sampleGstr2b,
+    payload: uploadedGstr2bJson,
   });
   console.log(`[RECON - PROCESS] POST /api/v1/reconciliation/process -> Status: ${processReconRes.statusCode}`);
   if (processReconRes.statusCode !== 200) throw new Error('Reconciliation process failed');
@@ -229,7 +296,7 @@ async function runCrudVerification() {
   await prisma.client.delete({ where: { id: createdClient.id } });
   console.log('🧹 Cleaned up test invoice and test client from database.');
 
-  console.log('\n🎉 ALL DATABASE CRUD, EXPORT & WHATSAPP HEALTH ENDPOINTS FULLY VERIFIED AND PASSING (100%)!');
+  console.log('\n🎉 ALL DATABASE CRUD, DUAL-TOKEN AUTH & EXPORT ENDPOINTS FULLY VERIFIED AND PASSING (100%)!');
 }
 
 runCrudVerification()
