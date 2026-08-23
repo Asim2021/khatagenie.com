@@ -27,7 +27,7 @@ export const LoginPage: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('admin@khatagenie.com');
-  const [password, setPassword] = useState('KhataGenie#2026');
+  const [password, setPassword] = useState('Asim@123');
   const [firmName, setFirmName] = useState('Bansal & Associates CA');
   const [fullName, setFullName] = useState('CA Rajesh Bansal, FCA');
   const [phone, setPhone] = useState('9811000000');
@@ -70,11 +70,18 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleQuickDemoFill = () => {
+  const handleQuickAdminFill = () => {
     setEmail('admin@khatagenie.com');
-    setPassword('KhataGenie#2026');
+    setPassword('Asim@123');
     setIsRegister(false);
-    showToast('Demo CA credentials loaded!', 'info');
+    showToast('Admin credentials loaded (CA Admin)', 'info');
+  };
+
+  const handleQuickStaffFill = () => {
+    setEmail('user@khatagenie.com');
+    setPassword('Asim@123');
+    setIsRegister(false);
+    showToast('End User credentials loaded (CA Staff)', 'info');
   };
 
   return (
@@ -356,14 +363,23 @@ export const LoginPage: React.FC = () => {
             </form>
 
             {/* Quick Demo Pre-fill */}
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-4 text-xs font-mono font-medium">
               <button
                 type="button"
-                onClick={handleQuickDemoFill}
-                className="inline-flex items-center space-x-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-mono font-medium"
+                onClick={handleQuickAdminFill}
+                className="inline-flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 hover:underline"
               >
                 <Zap className="w-3.5 h-3.5" />
-                <span>Quick Fill Pre-Configured Demo Credentials</span>
+                <span>Fill Admin User</span>
+              </button>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <button
+                type="button"
+                onClick={handleQuickStaffFill}
+                className="inline-flex items-center space-x-1 text-cyan-600 dark:text-cyan-400 hover:underline"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Fill End User</span>
               </button>
             </div>
           </div>

@@ -34,108 +34,11 @@ export const InboxPage: React.FC = () => {
   const { data, isLoading } = useQuery<{ invoices: any[]; counts: Record<string, number> }>({
     queryKey: ['invoices', activeTab, searchQuery],
     queryFn: async () => {
-      try {
-        const statusParam = activeTab === 'ALL' ? '' : `&status=${activeTab}`;
-        const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
-        return await fetchApi<{ invoices: any[]; counts: Record<string, number> }>(
-          `/invoices?limit=50${statusParam}${searchParam}`
-        );
-      } catch (err) {
-        console.warn('Using mock sample data for offline preview:', err);
-        const mockData = [
-          {
-            id: 'inv-delhi-01',
-            senderPhone: '919877665544',
-            fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1000',
-            status: 'NEEDS_REVIEW',
-            invoiceNumber: 'DEL-HGN-4412',
-            invoiceDate: '2026-08-20',
-            supplierName: 'Cybertronics Hardware Gurgaon',
-            supplierGstin: '06EEEFF5555E1Z9',
-            taxableAmount: 25000.0,
-            cgstAmount: 0,
-            sgstAmount: 0,
-            igstAmount: 4500.0,
-            totalAmount: 29500.0,
-            isMathValid: true,
-            confidenceScore: 0.91,
-            client: { businessName: 'Sharma Electronics & Appliances', gstin: '07BBCDE2222B1Z8' },
-          },
-          {
-            id: 'inv-delhi-02',
-            senderPhone: '919811223344',
-            fileUrl: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&q=80&w=1000',
-            status: 'APPROVED',
-            invoiceNumber: 'INV-2026-0891',
-            invoiceDate: '2026-08-15',
-            supplierName: 'Om Prakash Stationery & Supplies',
-            supplierGstin: '07DDDDE4444D1Z2',
-            taxableAmount: 10000.0,
-            cgstAmount: 900.0,
-            sgstAmount: 900.0,
-            igstAmount: 0,
-            totalAmount: 11800.0,
-            isMathValid: true,
-            confidenceScore: 0.96,
-            client: { businessName: 'Aggarwal Traders', gstin: '07AABCA1111A1Z0' },
-          },
-          {
-            id: 'inv-delhi-03',
-            senderPhone: '919891002233',
-            fileUrl: 'https://images.unsplash.com/photo-1607344645866-009c320b5ab8?auto=format&fit=crop&q=80&w=1000',
-            status: 'NEEDS_REVIEW',
-            invoiceNumber: 'RCPT-8821',
-            invoiceDate: '2026-08-21',
-            supplierName: 'Haldiram Snacks Connaught Place',
-            supplierGstin: '07AAACH1234A1Z0',
-            taxableAmount: 1500.0,
-            cgstAmount: 37.5,
-            sgstAmount: 37.5,
-            igstAmount: 0,
-            totalAmount: 1575.0,
-            isMathValid: true,
-            confidenceScore: 0.88,
-            client: { businessName: 'Gupta Auto Components', gstin: '07CCDEF3333C1Z6' },
-          },
-          {
-            id: 'inv-delhi-04',
-            senderPhone: '919810112233',
-            fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1000',
-            status: 'EXPORTED',
-            invoiceNumber: 'SBI-2026/0412',
-            invoiceDate: '2026-08-19',
-            supplierName: 'Shree Balaji Industrial Hardware',
-            supplierGstin: '07AAAFB1234F1Z3',
-            taxableAmount: 18000.0,
-            cgstAmount: 1620.0,
-            sgstAmount: 1620.0,
-            igstAmount: 0,
-            totalAmount: 21240.0,
-            isMathValid: true,
-            confidenceScore: 0.98,
-            client: { businessName: 'Aggarwal Traders', gstin: '07AABCA1111A1Z0' },
-          },
-        ];
-
-        const filtered = mockData.filter((item) => {
-          const matchesTab = activeTab === 'ALL' || item.status === activeTab;
-          const matchesSearch =
-            !searchQuery ||
-            item.supplierName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (item.client?.businessName || '').toLowerCase().includes(searchQuery.toLowerCase());
-          return matchesTab && matchesSearch;
-        });
-
-        return {
-          invoices: filtered,
-          counts: {
-            NEEDS_REVIEW: mockData.filter((i) => i.status === 'NEEDS_REVIEW').length,
-            APPROVED: mockData.filter((i) => i.status === 'APPROVED').length,
-            EXPORTED: mockData.filter((i) => i.status === 'EXPORTED').length,
-          },
-        };
-      }
+      const statusParam = activeTab === 'ALL' ? '' : `&status=${activeTab}`;
+      const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
+      return await fetchApi<{ invoices: any[]; counts: Record<string, number> }>(
+        `/invoices?limit=50${statusParam}${searchParam}`
+      );
     },
   });
 

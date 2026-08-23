@@ -42,47 +42,8 @@ export const ClientsPage: React.FC = () => {
   const { data: clients = [], isLoading } = useQuery<any[]>({
     queryKey: ['clients'],
     queryFn: async () => {
-      try {
-        const data = await fetchApi<any[]>('/clients');
-        return data || [];
-      } catch (err) {
-        console.warn('Using mock clients:', err);
-        return [
-          {
-            id: 'c1',
-            businessName: 'Aggarwal Traders',
-            tradeName: 'Aggarwal Wholesale Hub',
-            gstin: '07AABCA1111A1Z0',
-            pan: 'AABCA1111A',
-            whatsappPhone: '919811223344',
-            tallyLedgerName: 'Aggarwal Traders - Purchase A/c',
-            isActive: true,
-            _count: { invoices: 14 },
-          },
-          {
-            id: 'c2',
-            businessName: 'Sharma Electronics & Appliances',
-            tradeName: 'Sharma Digital Store',
-            gstin: '07BBCDE2222B1Z8',
-            pan: 'BBCDE2222B',
-            whatsappPhone: '919877665544',
-            tallyLedgerName: 'Sharma Electronics - Purchase A/c',
-            isActive: true,
-            _count: { invoices: 8 },
-          },
-          {
-            id: 'c3',
-            businessName: 'Gupta Auto Components',
-            tradeName: 'Gupta Motors Delhi',
-            gstin: '07CCDEF3333C1Z6',
-            pan: 'CCDEF3333C',
-            whatsappPhone: '919899112233',
-            tallyLedgerName: 'Gupta Auto - Raw Material A/c',
-            isActive: true,
-            _count: { invoices: 5 },
-          },
-        ];
-      }
+      const data = await fetchApi<any[]>('/clients');
+      return data || [];
     },
   });
 

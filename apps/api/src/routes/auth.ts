@@ -56,53 +56,11 @@ export async function authRoutes(server: FastifyInstance) {
         }
       }
     } catch (err: any) {
-      console.warn(`[Auth] Database notice (${err.message}). Checking seed credentials.`);
-    }
-
-    // Developer / Offline Seed Admin Fallback (Non-Production Only)
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      email === 'admin@khatagenie.com' &&
-      password === 'KhataGenie#2026'
-    ) {
-      const token = server.jwt.sign(
-        {
-          userId: 'usr_admin_01',
-          organizationId: 'org_bansal_ca',
-          role: 'CA_ADMIN',
-          email: 'admin@khatagenie.com',
-        },
-        { expiresIn: '7d' }
-      );
-
-      return {
-        token,
-        user: {
-          id: 'usr_admin_01',
-          organizationId: 'org_bansal_ca',
-          email: 'admin@khatagenie.com',
-          fullName: 'CA Rajesh Bansal, FCA',
-          role: 'CA_ADMIN',
-          subscriptionTier: 'pro',
-          organizationName: 'Bansal & Associates CA',
-          featureOverrides: {
-            feature_whatsapp_ingestion: true,
-            feature_ai_vision_extraction: true,
-            feature_split_screen_review: true,
-            feature_tally_xml_export: true,
-            feature_excel_export: true,
-            feature_direct_upload: true,
-            feature_advanced_gstin_validation: true,
-            feature_bulk_approval: true,
-            feature_multi_page_pdf: true,
-            feature_cloud_storage_r2: true,
-            feature_async_extraction_queue: true,
-            feature_gstr2b_reconciliation: true,
-            feature_whatsapp_interactive_bot: true,
-            feature_busy_accounting_export: true,
-          },
-        },
-      };
+      console.error(`[Auth] Database authentication error: ${err.message}`);
+      return reply.status(500).send({
+        error: 'DATABASE_ERROR',
+        message: 'Unable to process authentication request.',
+      });
     }
 
     return reply.status(401).send({
@@ -135,39 +93,19 @@ export async function authRoutes(server: FastifyInstance) {
           },
         };
       }
+
+      return reply.status(404).send({
+        error: 'USER_NOT_FOUND',
+        message: 'User account not found.',
+      });
     } catch (err: any) {
-      console.warn(`[Auth] /me DB notice (${err.message}). Returning JWT claims.`);
+      console.error(`[Auth] /me error: ${err.message}`);
+      return reply.status(500).send({
+        error: 'DATABASE_ERROR',
+        message: 'Unable to retrieve user details.',
+      });
     }
-
-    return {
-      user: {
-        id: userId,
-        organizationId: request.user!.organizationId,
-        email: request.user!.email,
-        fullName: 'CA Rajesh Bansal, FCA',
-        role: request.user!.role,
-        organizationName: 'Bansal & Associates CA',
-        subscriptionTier: 'pro',
-        featureOverrides: {
-          feature_whatsapp_ingestion: true,
-          feature_ai_vision_extraction: true,
-          feature_split_screen_review: true,
-          feature_tally_xml_export: true,
-          feature_excel_export: true,
-          feature_direct_upload: true,
-          feature_advanced_gstin_validation: true,
-          feature_bulk_approval: true,
-          feature_multi_page_pdf: true,
-          feature_cloud_storage_r2: true,
-          feature_async_extraction_queue: true,
-          feature_gstr2b_reconciliation: true,
-          feature_whatsapp_interactive_bot: true,
-          feature_busy_accounting_export: true,
-        },
-      },
-    };
   });
-
 
   // POST /api/v1/auth/register
   server.post('/register', async (request, reply) => {
@@ -245,55 +183,10 @@ export async function authRoutes(server: FastifyInstance) {
         },
       };
     } catch (err: any) {
-      console.warn(`[Auth] /register DB notice (${err.message}). Using local registration fallback.`);
-
-      if (process.env.NODE_ENV !== 'production') {
-        const mockOrgId = `org_${Math.random().toString(36).substring(2, 8)}`;
-        const mockUserId = `usr_${Math.random().toString(36).substring(2, 8)}`;
-
-        const token = server.jwt.sign(
-          {
-            userId: mockUserId,
-            organizationId: mockOrgId,
-            role: 'CA_ADMIN',
-            email,
-          },
-          { expiresIn: '7d' }
-        );
-
-        return {
-          token,
-          user: {
-            id: mockUserId,
-            organizationId: mockOrgId,
-            email,
-            fullName,
-            role: 'CA_ADMIN',
-            subscriptionTier: 'pro',
-            organizationName: firmName,
-            featureOverrides: {
-              feature_whatsapp_ingestion: true,
-              feature_ai_vision_extraction: true,
-              feature_split_screen_review: true,
-              feature_tally_xml_export: true,
-              feature_excel_export: true,
-              feature_direct_upload: true,
-              feature_advanced_gstin_validation: true,
-              feature_bulk_approval: true,
-              feature_multi_page_pdf: true,
-              feature_cloud_storage_r2: true,
-              feature_async_extraction_queue: true,
-              feature_gstr2b_reconciliation: true,
-              feature_whatsapp_interactive_bot: true,
-              feature_busy_accounting_export: true,
-            },
-          },
-        };
-      }
-
-      return reply.status(503).send({
-        error: 'DATABASE_UNAVAILABLE',
-        message: 'Registration service temporarily unavailable. Please try again shortly.',
+      console.error(`[Auth] /register database error: ${err.message}`);
+      return reply.status(500).send({
+        error: 'REGISTRATION_FAILED',
+        message: 'Failed to create organization and user account.',
       });
     }
   });

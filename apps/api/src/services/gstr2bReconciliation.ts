@@ -89,47 +89,14 @@ export class Gstr2bReconciliationService {
     organizationId: string,
     gstr2bRecords: Gstr2bInvoiceRecord[]
   ): Promise<ReconciliationSummary> {
-    // 1. Fetch all approved / needs_review invoices for this organization (with offline fallback)
-    let booksInvoices: any[] = [];
-    try {
-      booksInvoices = await prisma.invoice.findMany({
-        where: {
-          organizationId,
-          status: { in: ['NEEDS_REVIEW', 'APPROVED', 'EXPORTED'] },
-        },
-        include: { client: true },
-      });
-    } catch (err: any) {
-      console.warn(`[GSTR2B] Database query notice (${err.message}). Using offline sample books records.`);
-      booksInvoices = [
-        {
-          id: 'inv-offline-01',
-          supplierName: 'Shree Balaji Industrial Hardware',
-          supplierGstin: '07AAAFB1234F1Z3',
-          invoiceNumber: 'SBI-2026/0412',
-          invoiceDate: new Date('2026-08-20'),
-          taxableAmount: 18000.0,
-          cgstAmount: 1620.0,
-          sgstAmount: 1620.0,
-          igstAmount: 0.0,
-          cessAmount: 0.0,
-          totalAmount: 21240.0,
-        },
-        {
-          id: 'inv-offline-02',
-          supplierName: 'Om Prakash Stationery & Supplies',
-          supplierGstin: '07DDDDE4444D1Z2',
-          invoiceNumber: 'INV-2026-0891',
-          invoiceDate: new Date('2026-08-15'),
-          taxableAmount: 10000.0,
-          cgstAmount: 900.0,
-          sgstAmount: 900.0,
-          igstAmount: 0.0,
-          cessAmount: 0.0,
-          totalAmount: 11800.0,
-        },
-      ];
-    }
+    // 1. Fetch all approved / needs_review invoices for this organization
+    const booksInvoices = await prisma.invoice.findMany({
+      where: {
+        organizationId,
+        status: { in: ['NEEDS_REVIEW', 'APPROVED', 'EXPORTED'] },
+      },
+      include: { client: true },
+    });
 
 
     const reconciliationItems: ReconciliationItem[] = [];

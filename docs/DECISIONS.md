@@ -175,3 +175,17 @@ This document tracks all significant architectural and technical decisions made 
 - **Trade-offs**: Adds periodic 30s background health polling.
 - **Risks**: None; verified via automated API suite and browser tests.
 
+---
+
+## DEC-016: PostgreSQL Container Integration, Zero Hardcoded Mock Data & Database-First Testing
+- **Date**: 2026-08-23
+- **Status**: Accepted
+- **Context**: Transitioning from developer offline mock stores to a live local Docker PostgreSQL database container (`root` / `Asim@123` on port 5432). All hardcoded test data was removed from application code so the application runs strictly on real database data.
+- **Alternatives Considered**: 
+  1. Retain fallback mock data arrays in application catch blocks.
+  2. Complete elimination of all in-memory mock data, enforcing pure PostgreSQL transactions with schema migrations and dedicated test fixture seeding/cleanup in test suites.
+- **Selected Option**: Option 2.
+- **Reason for Selection**: Eliminates phantom data discrepancies, guarantees that UI and API strictly reflect true database state, prevents mock data leakage into production paths, and establishes a clean baseline with exactly 1 Admin and 1 Staff user.
+- **Trade-offs**: Requires PostgreSQL instance running for API operations.
+- **Risks**: None; verified with Prisma migrations, clean seed, and 100% passing CRUD suite.
+

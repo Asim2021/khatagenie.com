@@ -30,62 +30,42 @@ export async function exportRoutes(server: FastifyInstance) {
         where.clientId = query.clientId;
       }
 
-      let invoices: any[] = [];
       try {
-        invoices = await prisma.invoice.findMany({
+        const invoices = await prisma.invoice.findMany({
           where,
           include: { client: true },
           orderBy: { invoiceDate: 'asc' },
         });
-      } catch (err: any) {
-        console.warn(`[Exports] Tally export DB notice (${err.message}). Using sample approved invoices.`);
-        invoices = [
-          {
-            id: 'inv-test-1',
-            invoiceNumber: 'INV-2026-901',
-            invoiceDate: new Date('2026-08-22'),
-            supplierName: 'Om Prakash Paper Mart',
-            taxableAmount: 5000.0,
-            cgstAmount: 450.0,
-            sgstAmount: 450.0,
-            igstAmount: 0,
-            totalAmount: 5900.0,
-            senderPhone: '919811223344',
-            client: { tallyLedgerName: 'Aggarwal Traders - Purchase A/c' },
-          },
-          {
-            id: 'inv-test-2',
-            invoiceNumber: 'DEL-HR-002',
-            invoiceDate: new Date('2026-08-22'),
-            supplierName: 'Cyber Electronics Haryana',
-            taxableAmount: 10000.0,
-            cgstAmount: 0,
-            sgstAmount: 0,
-            igstAmount: 1800.0,
-            totalAmount: 11800.0,
-            senderPhone: '919877665544',
-            client: { tallyLedgerName: 'Sharma Electronics - Purchase A/c' },
-          },
-        ];
-      }
 
-      const xmlString = tallyExporter.generatePurchaseVouchersXml(
-        invoices,
-        'Bansal & Associates CA'
-      );
-
-      // Mark invoices as EXPORTED if DB connected
-      try {
-        const invoiceIds = invoices.map((i) => i.id);
-        await prisma.invoice.updateMany({
-          where: { id: { in: invoiceIds } },
-          data: { status: InvoiceStatus.EXPORTED, exportedAt: new Date() },
+        const org = await prisma.organization.findUnique({
+          where: { id: orgId },
+          select: { name: true },
         });
-      } catch {}
 
-      reply.header('Content-Type', 'application/xml');
-      reply.header('Content-Disposition', `attachment; filename="tally_vouchers_${Date.now()}.xml"`);
-      return reply.send(xmlString);
+        const xmlString = tallyExporter.generatePurchaseVouchersXml(
+          invoices,
+          org?.name || 'KhataGenie Client'
+        );
+
+        // Mark invoices as EXPORTED
+        if (invoices.length > 0) {
+          const invoiceIds = invoices.map((i) => i.id);
+          await prisma.invoice.updateMany({
+            where: { id: { in: invoiceIds } },
+            data: { status: InvoiceStatus.EXPORTED, exportedAt: new Date() },
+          });
+        }
+
+        reply.header('Content-Type', 'application/xml');
+        reply.header('Content-Disposition', `attachment; filename="tally_vouchers_${Date.now()}.xml"`);
+        return reply.send(xmlString);
+      } catch (err: any) {
+        console.error(`[Exports] Tally export database error: ${err.message}`);
+        return reply.status(500).send({
+          error: 'EXPORT_FAILED',
+          message: 'Failed to generate Tally XML export.',
+        });
+      }
     }
   );
 
@@ -109,50 +89,25 @@ export async function exportRoutes(server: FastifyInstance) {
         where.clientId = query.clientId;
       }
 
-      let invoices: any[] = [];
       try {
-        invoices = await prisma.invoice.findMany({
+        const invoices = await prisma.invoice.findMany({
           where,
           include: { client: true },
           orderBy: { invoiceDate: 'desc' },
         });
+
+        const buffer = excelExporter.generatePurchaseRegisterExcel(invoices);
+
+        reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        reply.header('Content-Disposition', `attachment; filename="gst_purchase_register_${Date.now()}.xlsx"`);
+        return reply.send(buffer);
       } catch (err: any) {
-        console.warn(`[Exports] Excel export DB notice (${err.message}). Using sample invoices.`);
-        invoices = [
-          {
-            id: 'inv-test-1',
-            invoiceNumber: 'INV-2026-901',
-            invoiceDate: new Date('2026-08-22'),
-            supplierName: 'Om Prakash Paper Mart',
-            taxableAmount: 5000.0,
-            cgstAmount: 450.0,
-            sgstAmount: 450.0,
-            igstAmount: 0,
-            totalAmount: 5900.0,
-            senderPhone: '919811223344',
-            client: { businessName: 'Aggarwal Traders' },
-          },
-          {
-            id: 'inv-test-2',
-            invoiceNumber: 'DEL-HR-002',
-            invoiceDate: new Date('2026-08-22'),
-            supplierName: 'Cyber Electronics Haryana',
-            taxableAmount: 10000.0,
-            cgstAmount: 0,
-            sgstAmount: 0,
-            igstAmount: 1800.0,
-            totalAmount: 11800.0,
-            senderPhone: '919877665544',
-            client: { businessName: 'Sharma Electronics' },
-          },
-        ];
+        console.error(`[Exports] Excel export database error: ${err.message}`);
+        return reply.status(500).send({
+          error: 'EXPORT_FAILED',
+          message: 'Failed to generate Excel export.',
+        });
       }
-
-      const buffer = excelExporter.generatePurchaseRegisterExcel(invoices);
-
-      reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      reply.header('Content-Disposition', `attachment; filename="gst_purchase_register_${Date.now()}.xlsx"`);
-      return reply.send(buffer);
     }
   );
 }

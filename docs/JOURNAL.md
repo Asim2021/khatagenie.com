@@ -248,7 +248,18 @@ Upgrade KhataGenie to enterprise production readiness: add GSTR-2B 2-way ITC rec
       - Excel Export (`GET /api/v1/exports/excel`): 200 OK
     - Verified live client registration in Playwright, capturing `modal-portal-backdrop-verified.png`, `clients-toast-top-right-verified.png`, and `clients-toast-dark-verified.png`.
 
+  - Implemented Phase 16: Local Docker PostgreSQL Connection, Schema Migrations & Zero Mock Data:
+    - Connected backend to Docker PostgreSQL container at `localhost:5432` (`root` / `Asim@123`).
+    - Configured `DATABASE_URL` in root `.env` and `apps/api/.env`.
+    - Generated and recorded initial Prisma migration: `apps/api/prisma/migrations/20260823000000_init/migration.sql`.
+    - Updated `apps/api/prisma/seed.ts` to seed exactly 1 Admin user (`admin@khatagenie.com` / `Asim@123`) and 1 End user (`user@khatagenie.com` / `Asim@123`), completely removing all fake clients and invoices.
+    - Completely removed hardcoded test/mock data arrays and fallback mocks from all API routes and services (`auth.ts`, `clients.ts`, `invoices.ts`, `exports.ts`, `gstr2bReconciliation.ts`).
+    - Cleaned web UI pages (`ClientsPage.tsx`, `InboxPage.tsx`, `InvoiceReviewPage.tsx`) so they strictly fetch and display live database state with zero hardcoded mocks.
+    - Updated `LoginPage.tsx` with dual 1-click Quick Fill buttons for Admin User and End User.
+    - Updated `apps/api/test-crud.ts` to test against real PostgreSQL records (seeding test fixtures during verification and cleaning up).
+    - Executed `test-crud.ts` (100% Passed) and `npm run build` (100% Passed across all monorepo packages).
+
 ### Next Actions
-- Connect live Meta WhatsApp Cloud API credentials in `.env` for production phone testing.
+- Connect live Meta WhatsApp Cloud API credentials in `.env` for physical phone message testing.
 - Deploy to Railway production environment.
 

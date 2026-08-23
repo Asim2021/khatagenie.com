@@ -46,43 +46,9 @@ export const InvoiceReviewPage: React.FC = () => {
   const { data: invoice, isLoading } = useQuery({
     queryKey: ['invoice', id],
     queryFn: async () => {
-      try {
-        return await fetchApi<any>(`/invoices/${id}`);
-      } catch (err) {
-        console.warn('Fallback mock invoice for split screen preview:', err);
-        return {
-          id: id || 'inv-delhi-01',
-          senderPhone: '919877665544',
-          fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1200',
-          status: 'NEEDS_REVIEW',
-          invoiceNumber: 'DEL-HGN-4412',
-          invoiceDate: '2026-08-20',
-          supplierName: 'Cybertronics Hardware Gurgaon',
-          supplierGstin: '06EEEFF5555E1Z9',
-          taxableAmount: 25000.0,
-          cgstAmount: 0,
-          sgstAmount: 0,
-          igstAmount: 4500.0,
-          totalAmount: 29500.0,
-          confidenceScore: 0.91,
-          lineItems: [
-            {
-              description: 'Industrial Heavy Duty Inverter 5kVA',
-              hsnCode: '8504',
-              quantity: 1,
-              unit: 'PCS',
-              unitPrice: 25000.0,
-              taxableAmount: 25000.0,
-              gstRate: 18.0,
-              cgstAmount: 0,
-              sgstAmount: 0,
-              igstAmount: 4500.0,
-              totalAmount: 29500.0,
-            },
-          ],
-        };
-      }
+      return await fetchApi<any>(`/invoices/${id}`);
     },
+    enabled: !!id,
   });
 
   // 2. TanStack Query for MSME Clients
