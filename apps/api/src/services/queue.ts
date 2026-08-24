@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { InvoiceStatus, InvoiceType } from '@prisma/client';
 import { extractPanFromGstin } from '@khatagenie/shared';
 import { whatsappService } from './whatsapp';
+import { auditLogger, AUDIT_ACTIONS } from './auditLogger';
 
 export interface ExtractionJob {
   id: string;
@@ -71,6 +72,12 @@ export class ExtractionQueue {
             errorMessage: err.message || 'Vision AI extraction failed after multiple retries.',
           },
         });
+
+        await auditLogger.log({
+          invoiceId: job.invoiceId,
+          action: AUDIT_ACTIONS.OCR_FAILED,
+          details: `Vision AI extraction failed: ${err.message || 'Unknown error'}.`,
+        });
       }
     } finally {
       this.activeCount--;
@@ -134,6 +141,12 @@ export class ExtractionQueue {
           })),
         });
       }
+
+      await auditLogger.log({
+        invoiceId: job.invoiceId,
+        action: AUDIT_ACTIONS.OCR_PROCESSED,
+        details: `Gemini Flash 3.7 AI OCR extraction complete. Confidence: ${Math.round((extraction.confidenceScore || 0.85) * 100)}%, Math: ${isMathValid ? 'Balanced' : 'Mismatch detected'}. Extracted total: ₹${(extraction.totalAmount || 0).toFixed(2)}.`,
+      }, tx);
     });
 
     // If invoice came from WhatsApp, send automated confirmation

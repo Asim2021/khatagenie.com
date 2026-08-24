@@ -9,6 +9,7 @@ import path from 'path';
 import { extractionQueue } from '../services/queue';
 import { storageService } from '../services/storage';
 import { pdfProcessor } from '../services/pdfProcessor';
+import { auditLogger, AUDIT_ACTIONS } from '../services/auditLogger';
 
 export async function invoiceRoutes(server: FastifyInstance) {
   // Apply auth globally to all invoice endpoints
@@ -111,6 +112,10 @@ export async function invoiceRoutes(server: FastifyInstance) {
           client: true,
           reviewedBy: { select: { id: true, fullName: true, email: true } },
           lineItems: { orderBy: { id: 'asc' } },
+          auditLogs: {
+            include: { user: { select: { id: true, fullName: true, email: true } } },
+            orderBy: { createdAt: 'desc' },
+          },
         },
       });
 
@@ -205,7 +210,11 @@ export async function invoiceRoutes(server: FastifyInstance) {
           }
         }
 
-        return tx.invoice.update({
+        const rejectionReason = data.status === InvoiceStatus.APPROVED 
+          ? null 
+          : (data.rejectionReason !== undefined ? data.rejectionReason : existing.rejectionReason);
+
+        const updatedInvoice = await tx.invoice.update({
           where: { id },
           data: {
             supplierName: data.supplierName,
@@ -228,15 +237,49 @@ export async function invoiceRoutes(server: FastifyInstance) {
             clientId: data.clientId !== undefined ? data.clientId : undefined,
             status: data.status as any,
             reviewNotes: data.reviewNotes,
+            rejectionReason,
             reviewedById: isBeingReviewed ? userId : existing.reviewedById,
             reviewedAt: isBeingReviewed ? new Date() : existing.reviewedAt,
           },
           include: {
             client: true,
-            reviewedBy: { select: { id: true, fullName: true } },
+            reviewedBy: { select: { id: true, fullName: true, email: true } },
             lineItems: true,
           },
         });
+
+        // Audit Logging
+        if (data.status === InvoiceStatus.REJECTED) {
+          await auditLogger.log({
+            invoiceId: id,
+            userId,
+            action: AUDIT_ACTIONS.REJECTED,
+            details: rejectionReason ? `Rejected: ${rejectionReason}` : 'Marked as rejected by reviewer.',
+          }, tx);
+        } else if (data.status === InvoiceStatus.APPROVED) {
+          await auditLogger.log({
+            invoiceId: id,
+            userId,
+            action: AUDIT_ACTIONS.APPROVED,
+            details: `Approved & verified (Total: ₹${totalAmount.toFixed(2)}, Math: ${mathCheck.isValid ? 'Balanced' : 'Flagged'}).`,
+          }, tx);
+        } else if (data.status === InvoiceStatus.NEEDS_REVIEW && existing.status !== InvoiceStatus.NEEDS_REVIEW) {
+          await auditLogger.log({
+            invoiceId: id,
+            userId,
+            action: AUDIT_ACTIONS.RE_REVIEWED,
+            details: 'Invoice reset to Needs Review state.',
+          }, tx);
+        } else {
+          await auditLogger.log({
+            invoiceId: id,
+            userId,
+            action: AUDIT_ACTIONS.UPDATED,
+            details: `Invoice fields updated by reviewer (Total: ₹${totalAmount.toFixed(2)}).`,
+          }, tx);
+        }
+
+        return updatedInvoice;
       });
 
       return updated;
@@ -334,6 +377,14 @@ export async function invoiceRoutes(server: FastifyInstance) {
           },
         });
 
+        // Audit Logging
+        await auditLogger.log({
+          invoiceId: invoice.id,
+          userId: request.user!.userId,
+          action: AUDIT_ACTIONS.UPLOADED,
+          details: `Direct web upload: ${data.filename} (${(uploadResult.sizeBytes / 1024).toFixed(1)} KB, ${docInfo.pageCount} page(s)).`,
+        });
+
         // Enqueue to background worker queue
         extractionQueue.enqueue(invoice.id, fullDiskPath, senderPhone);
 
@@ -371,6 +422,7 @@ export async function invoiceRoutes(server: FastifyInstance) {
       }
 
       await prisma.$transaction(async (tx) => {
+        await (tx as any).invoiceAuditLog.deleteMany({ where: { invoiceId: id } });
         await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
         await tx.invoice.delete({ where: { id } });
       });
@@ -419,6 +471,7 @@ export async function invoiceRoutes(server: FastifyInstance) {
       const validIds = invoices.map((i) => i.id);
 
       await prisma.$transaction(async (tx) => {
+        await (tx as any).invoiceAuditLog.deleteMany({ where: { invoiceId: { in: validIds } } });
         await tx.invoiceItem.deleteMany({ where: { invoiceId: { in: validIds } } });
         await tx.invoice.deleteMany({ where: { id: { in: validIds } } });
       });
@@ -447,9 +500,10 @@ export async function invoiceRoutes(server: FastifyInstance) {
   server.post('/bulk-status', async (request, reply) => {
     const orgId = request.user!.organizationId;
     const userId = request.user!.userId;
-    const { invoiceIds, status } = request.body as {
+    const { invoiceIds, status, rejectionReason } = request.body as {
       invoiceIds: string[];
       status: InvoiceStatus;
+      rejectionReason?: string;
     };
 
     if (!Array.isArray(invoiceIds) || invoiceIds.length === 0 || !status) {
@@ -461,15 +515,31 @@ export async function invoiceRoutes(server: FastifyInstance) {
 
     try {
       const isReviewing = status === InvoiceStatus.APPROVED || status === InvoiceStatus.REJECTED;
+      const finalRejectionReason = status === InvoiceStatus.REJECTED 
+        ? (rejectionReason || 'Bulk rejected by reviewer.')
+        : (status === InvoiceStatus.APPROVED ? null : undefined);
 
       const result = await prisma.invoice.updateMany({
         where: { id: { in: invoiceIds }, organizationId: orgId },
         data: {
           status: status as any,
+          rejectionReason: finalRejectionReason,
           reviewedById: isReviewing ? userId : undefined,
           reviewedAt: isReviewing ? new Date() : undefined,
         },
       });
+
+      // Audit log each invoice in the batch
+      for (const invId of invoiceIds) {
+        await auditLogger.log({
+          invoiceId: invId,
+          userId,
+          action: status === InvoiceStatus.APPROVED ? AUDIT_ACTIONS.APPROVED : (status === InvoiceStatus.REJECTED ? AUDIT_ACTIONS.REJECTED : AUDIT_ACTIONS.UPDATED),
+          details: status === InvoiceStatus.REJECTED
+            ? `Bulk rejected: ${finalRejectionReason}`
+            : (status === InvoiceStatus.APPROVED ? 'Bulk approved & queued for Tally XML export.' : `Bulk status updated to ${status}.`),
+        });
+      }
 
       return {
         message: `Successfully updated ${result.count} invoice(s) to ${status}.`,
@@ -507,6 +577,13 @@ export async function invoiceRoutes(server: FastifyInstance) {
           status: InvoiceStatus.PROCESSING,
           errorMessage: null,
         },
+      });
+
+      await auditLogger.log({
+        invoiceId: id,
+        userId: request.user!.userId,
+        action: AUDIT_ACTIONS.OCR_RETRIED,
+        details: 'OCR extraction re-queued with Gemini Flash AI by reviewer.',
       });
 
       const fullDiskPath = path.join(process.cwd(), invoice.fileUrl);

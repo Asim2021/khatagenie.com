@@ -82,10 +82,26 @@ export const InvoiceUpdateSchema = z.object({
   status: z.nativeEnum(InvoiceStatus).optional(),
   clientId: z.string().nullable().optional(),
   reviewNotes: z.string().optional(),
+  rejectionReason: z.string().nullable().optional(),
   lineItems: z.array(InvoiceItemSchema).optional(),
 }).passthrough();
 
 export type InvoiceUpdatePayload = z.infer<typeof InvoiceUpdateSchema>;
+
+export interface InvoiceAuditLog {
+  id: string;
+  invoiceId: string;
+  userId: string | null;
+  action: string;
+  details: string | null;
+  metadata?: any;
+  createdAt: string;
+  user?: {
+    id?: string;
+    fullName: string;
+    email: string;
+  } | null;
+}
 
 export interface InvoiceRecord {
   id: string;
@@ -120,6 +136,7 @@ export interface InvoiceRecord {
   reviewedById: string | null;
   reviewedAt: string | null;
   reviewNotes: string | null;
+  rejectionReason: string | null;
   exportedAt: string | null;
   tallyVoucherId: string | null;
   pageCount?: number;
@@ -127,5 +144,7 @@ export interface InvoiceRecord {
   createdAt: string;
   updatedAt: string;
   lineItems?: InvoiceItem[];
+  auditLogs?: InvoiceAuditLog[];
 }
+
 

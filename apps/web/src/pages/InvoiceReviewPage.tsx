@@ -13,14 +13,18 @@ import {
   Trash2,
   RefreshCw,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  RotateCcw
 } from '../components/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ImageViewer } from '../components/ImageViewer';
 import { fetchApi } from '../lib/api';
 import { validateGstin, getStateFromGstin, verifyInvoiceMath } from '@khatagenie/shared';
-import { InvoiceStatus } from '@khatagenie/types';
+import { InvoiceStatus, FEATURE_FLAGS } from '@khatagenie/types';
 import { useToast } from '../context/ToastContext';
+import { FeatureGate } from '../components/FeatureGate';
+import { RejectReasonModal } from '../components/RejectReasonModal';
+import { InvoiceAuditTimeline } from '../components/InvoiceAuditTimeline';
 
 export const InvoiceReviewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +33,7 @@ export const InvoiceReviewPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [mobileActiveView, setMobileActiveView] = useState<'scan' | 'form'>('form');
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState<boolean>(false);
 
   // Form State
   const [supplierName, setSupplierName] = useState<string>('');
@@ -104,7 +109,7 @@ export const InvoiceReviewPage: React.FC = () => {
 
   // 3. Save / Approve Mutation
   const saveMutation = useMutation({
-    mutationFn: async (status: InvoiceStatus) => {
+    mutationFn: async ({ status, rejectionReason }: { status: InvoiceStatus; rejectionReason?: string }) => {
       return await fetchApi(`/invoices/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -121,21 +126,25 @@ export const InvoiceReviewPage: React.FC = () => {
           roundOffAmount,
           totalAmount,
           status,
+          rejectionReason: status === InvoiceStatus.REJECTED ? rejectionReason : null,
           reviewNotes,
           lineItems,
         }),
       });
     },
-    onSuccess: (_, status) => {
+    onSuccess: (_, vars) => {
+      setIsRejectModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
       queryClient.invalidateQueries({ queryKey: ['invoice', id] });
 
       showToast(
-        status === InvoiceStatus.APPROVED
+        vars.status === InvoiceStatus.APPROVED
           ? 'Invoice verified, approved & queued for Tally export!'
-          : 'Invoice marked as rejected.',
-        status === InvoiceStatus.APPROVED ? 'success' : 'info'
+          : vars.status === InvoiceStatus.REJECTED
+          ? 'Invoice marked as rejected and reason recorded.'
+          : 'Invoice updated.',
+        vars.status === InvoiceStatus.APPROVED ? 'success' : 'info'
       );
 
       navigate('/');
@@ -185,15 +194,16 @@ export const InvoiceReviewPage: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
-        saveMutation.mutate(InvoiceStatus.APPROVED);
+        saveMutation.mutate({ status: InvoiceStatus.APPROVED });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [supplierName, supplierGstin, taxableAmount, cgstAmount, sgstAmount, igstAmount, totalAmount, clientId, saveMutation]);
 
-  const handleApprove = () => saveMutation.mutate(InvoiceStatus.APPROVED);
-  const handleReject = () => saveMutation.mutate(InvoiceStatus.REJECTED);
+  const handleApprove = () => saveMutation.mutate({ status: InvoiceStatus.APPROVED });
+  const handleReject = () => setIsRejectModalOpen(true);
+  const handleReopen = () => saveMutation.mutate({ status: InvoiceStatus.NEEDS_REVIEW });
 
   const handleDelete = () => {
     if (window.confirm('Are you sure you want to permanently delete this invoice? This action cannot be undone.')) {
@@ -280,10 +290,16 @@ export const InvoiceReviewPage: React.FC = () => {
           <button
             onClick={handleReject}
             disabled={saveMutation.isPending}
-            className="btn-danger space-x-1.5 px-3 py-1.5"
+            className={`space-x-1.5 px-3 py-1.5 ${
+              invoice?.status === 'REJECTED'
+                ? 'btn-secondary text-rose-600 border-rose-300 dark:border-rose-800'
+                : 'btn-danger'
+            }`}
           >
             <XCircle className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline">Reject</span>
+            <span className="hidden xs:inline">
+              {invoice?.status === 'REJECTED' ? 'Update Reason' : 'Reject'}
+            </span>
           </button>
 
           {/* Approve */}
@@ -294,7 +310,13 @@ export const InvoiceReviewPage: React.FC = () => {
             className="btn-primary space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5"
           >
             <CheckCircle className="w-4 h-4 stroke-[2.5]" />
-            <span>{saveMutation.isPending ? 'Approving...' : 'Approve & Sync'}</span>
+            <span>
+              {saveMutation.isPending 
+                ? 'Approving...' 
+                : invoice?.status === 'APPROVED' 
+                ? 'Re-Approve & Sync' 
+                : 'Approve & Sync'}
+            </span>
             <kbd className="hidden md:inline text-[9px] bg-black/20 dark:bg-black/30 text-current font-mono px-1.5 py-0.5 rounded font-bold">
               ⌘ ↵
             </kbd>
@@ -319,6 +341,75 @@ export const InvoiceReviewPage: React.FC = () => {
             mobileActiveView === 'form' ? 'block' : 'hidden lg:block'
           }`}
         >
+          {/* Decision Status: REJECTED Banner */}
+          {invoice?.status === 'REJECTED' && (
+            <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 shadow-sm space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start space-x-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300">
+                        REJECTED INVOICE
+                      </span>
+                      {invoice?.reviewedAt && (
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                          {new Date(invoice.reviewedAt).toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-rose-900 dark:text-rose-200 mt-1">
+                      Reason: <span className="font-normal">{invoice?.rejectionReason || 'No specific reason entered.'}</span>
+                    </p>
+                    {invoice?.reviewedBy && (
+                      <p className="text-[11px] text-rose-700 dark:text-rose-400/80 mt-0.5">
+                        Flagged by: <span className="font-semibold">{invoice.reviewedBy.fullName}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={handleReopen}
+                  disabled={saveMutation.isPending}
+                  className="btn-secondary text-xs space-x-1.5 py-1.5 px-3 shrink-0"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reopen</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Decision Status: APPROVED Banner */}
+          {invoice?.status === 'APPROVED' && (
+            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 shadow-sm flex items-center justify-between">
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <CheckCircle className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                      APPROVED & VERIFIED
+                    </span>
+                    {invoice?.reviewedAt && (
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                        {new Date(invoice.reviewedAt).toLocaleString('en-IN')}
+                      </span>
+                    )}
+                  </div>
+                  {invoice?.reviewedBy && (
+                    <p className="text-[11px] text-emerald-800 dark:text-emerald-300 mt-0.5">
+                      Verified by: <span className="font-semibold">{invoice.reviewedBy.fullName}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Status Processing Alert */}
           {invoice?.status === 'PROCESSING' && (
             <div className="p-4 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 flex items-center justify-between shadow-sm">
@@ -624,8 +715,25 @@ export const InvoiceReviewPage: React.FC = () => {
               />
             </div>
           </div>
+
+          {/* Audit History & Activity Timeline (Feature Gated) */}
+          <FeatureGate flag={FEATURE_FLAGS.INVOICE_AUDIT_TRAIL}>
+            <InvoiceAuditTimeline auditLogs={invoice?.auditLogs} />
+          </FeatureGate>
         </div>
       </div>
+
+      {/* Reject Reason Modal Dialog */}
+      <RejectReasonModal
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        onConfirm={(reason) => {
+          saveMutation.mutate({ status: InvoiceStatus.REJECTED, rejectionReason: reason });
+        }}
+        initialReason={invoice?.rejectionReason || ''}
+        title={invoice?.status === 'REJECTED' ? 'Update Rejection Reason' : 'Reject Invoice'}
+        isPending={saveMutation.isPending}
+      />
     </div>
   );
 };

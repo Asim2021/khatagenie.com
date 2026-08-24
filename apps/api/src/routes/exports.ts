@@ -5,6 +5,7 @@ import { requireFeature } from '../middleware/featureGuard';
 import { FEATURE_FLAGS, InvoiceStatus } from '@khatagenie/types';
 import { tallyExporter } from '../services/tallyExporter';
 import { excelExporter } from '../services/excelExporter';
+import { auditLogger, AUDIT_ACTIONS } from '../services/auditLogger';
 
 export async function exportRoutes(server: FastifyInstance) {
   server.addHook('preHandler', authenticate);
@@ -15,6 +16,7 @@ export async function exportRoutes(server: FastifyInstance) {
     { preHandler: [requireFeature(FEATURE_FLAGS.TALLY_XML_EXPORT)] },
     async (request, reply) => {
       const orgId = request.user!.organizationId;
+      const userId = request.user!.userId;
       const query = request.query as { invoiceIds?: string; clientId?: string };
 
       const where: any = {
@@ -54,6 +56,15 @@ export async function exportRoutes(server: FastifyInstance) {
             where: { id: { in: invoiceIds } },
             data: { status: InvoiceStatus.EXPORTED, exportedAt: new Date() },
           });
+
+          for (const inv of invoices) {
+            await auditLogger.log({
+              invoiceId: inv.id,
+              userId,
+              action: AUDIT_ACTIONS.EXPORTED,
+              details: `Exported to Tally Prime XML purchase voucher (${inv.invoiceNumber || 'No bill #'}).`,
+            });
+          }
         }
 
         reply.header('Content-Type', 'application/xml');

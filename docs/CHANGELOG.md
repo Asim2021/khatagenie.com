@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
----
+## [0.7.0] - 2026-08-24
+
+### Added
+- **Mandatory Rejection Reason Workflow**: Added `RejectReasonModal` with standard accounting reason presets (Blurry Bill, Duplicate, Non-GST, Invalid GSTIN, Math Mismatch, Wrong Client, Other) and custom notes required for both single and bulk rejection actions.
+- **Dedicated Rejected Filter Tab & 5th KPI Card**: Added `Rejected` tab with live count badge and stat card in `InboxPage.tsx`.
+- **Chronological Invoice Audit Trail**: Added Prisma `InvoiceAuditLog` model and `AuditLogger` service recording all lifecycle events (`UPLOADED`, `OCR_PROCESSED`, `OCR_FAILED`, `UPDATED`, `APPROVED`, `REJECTED`, `RE_REVIEWED`, `EXPORTED`, `OCR_RETRIED`) with actor attribution, timestamp, and metadata.
+- **Feature Flag Gating**: Registered `INVOICE_AUDIT_TRAIL: 'feature_invoice_audit_trail'` in `packages/types/src/featureFlags.ts` (default `false` in `free` tier), guarding the `InvoiceAuditTimeline` component.
+- **Decision Status Banners**: Added high-visibility status banners in `InvoiceReviewPage.tsx` for `REJECTED` (with reason and "Reopen for Review" action) and `APPROVED` invoices.
+
+## [0.6.0] - 2026-08-24
+
+### Added
+- **Real Google Gemini Flash AI OCR**: Integrated Gemini OpenAI-compatible completions endpoint (`gemini-3.7-flash` -> `gemini-3.6-flash` -> `gemini-2.5-pro`) and purged dev mock sample data.
+- **Client Gating & Upload Modal**: Added client verification before upload to enforce multi-tenant ledger mapping.
+- **Live State Polling**: Integrated smart TanStack Query polling (`2500ms` during processing) for real-time inbox updates without manual page refreshes.
+- **Multi-Select Bulk Actions**: Added floating bulk actions toolbar with multi-select checkboxes for Bulk Approve, Bulk Reject, and Bulk Delete.
 
 ## [0.5.0] - 2026-08-23
 

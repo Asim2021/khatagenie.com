@@ -76,11 +76,33 @@ Resolve Vision AI OCR extraction failures, purge legacy mock fallback data, appl
     - Executed 1-click `Approve & Sync` in CA Review Studio, confirmed redirect to `/`, and verified invoice in `Approved` tab.
     - Verified Bulk Action Toolbar and Bulk Delete cleanup.
 
+- Implemented Mandatory Rejection Reasons, Dedicated Rejected Tab & Action Audit Trail:
+  - **Shared Types & Database Schema**:
+    - Added `INVOICE_AUDIT_TRAIL: 'feature_invoice_audit_trail'` feature flag key to `packages/types/src/featureFlags.ts` (default `false` in `free` tier).
+    - Added `rejectionReason` string field to Prisma `Invoice` model and shared `InvoiceUpdateSchema`/`InvoiceRecord`.
+    - Created Prisma `InvoiceAuditLog` model recording every state mutation (`UPLOADED`, `OCR_PROCESSED`, `OCR_FAILED`, `UPDATED`, `APPROVED`, `REJECTED`, `RE_REVIEWED`, `EXPORTED`, `OCR_RETRIED`) with user relations and timestamp.
+    - Executed `npx prisma db push` applying table schemas to PostgreSQL database.
+  - **Backend Audit Service & Route Handlers**:
+    - Created `AuditLogger` service (`apps/api/src/services/auditLogger.ts`).
+    - Hooked audit log writes into `POST /upload`, `queue.ts` (`OCR_PROCESSED`, `OCR_FAILED`), `PATCH /invoices/:id` (approval/rejection/updates), `POST /invoices/bulk-status`, `POST /invoices/:id/retry-ocr`, and `routes/exports.ts` (`EXPORTED`).
+    - Included `auditLogs` ordered descending in `GET /invoices/:id`.
+  - **Frontend Dedicated Rejected Tab & Rejection Reason Prompt**:
+    - Created `RejectReasonModal.tsx` supporting 7 accounting preset reasons (Blurry, Duplicate, Personal, Invalid GSTIN, Math Mismatch, Wrong Client, Other) and custom remarks.
+    - Added `Rejected` filter tab with dynamic count badge and 5th KPI card in `InboxPage.tsx`.
+    - Added rejection reason preview snippets and reviewer attribution in desktop table and mobile cards.
+    - Added prominent `REJECTED INVOICE` status banner with "Reopen for Review" action in `InvoiceReviewPage.tsx`.
+    - Created `InvoiceAuditTimeline.tsx` displaying full chronological audit history, embedded in `InvoiceReviewPage.tsx` behind `FEATURE_FLAGS.INVOICE_AUDIT_TRAIL`.
+    - Wired bulk reject button in `InboxPage.tsx` floating toolbar to open `RejectReasonModal`.
+  - **Verification**:
+    - `npm run build`: 100% Passed with zero TypeScript errors across all monorepo workspaces (`types`, `shared`, `api`, `web`).
+
 ### Decisions
 - `DEC-011`: Standardized on Google Gemini OpenAI-compatible completions endpoint (`/v1beta/openai`) with multi-model fallback chain (`gemini-3.7-flash` -> `gemini-3.6-flash` -> `gemini-2.5-pro`).
 - `DEC-012`: Adopted `z.coerce.number()` across all financial data schemas to transparently accept both numeric floats and serialized Decimal strings.
 - `DEC-013`: Enforced client-first ingestion gating: users must register an MSME client before ingesting bills to ensure proper multi-tenant ledger mapping and Section 43B(h) compliance.
+- `DEC-014`: Mandatory Rejection Reason & Audit Logging: Every rejected invoice must capture an explicit reason (via presets or custom text), and all invoice state transitions are permanently recorded in `InvoiceAuditLog` with actor attribution.
 
 ### Lessons
 - In Fastify/Prisma APIs, Decimal fields serialize to JSON strings. Using Zod `z.number()` without coercion causes schema validation failures on updates; `z.coerce.number()` resolves this seamlessly.
 - When background worker queues process async jobs, smart client polling conditioned on active `PROCESSING` status provides instant visual feedback without requiring full WebSocket infrastructure.
+- In professional accounting workflows, rejected bills must never be discarded silently or left ambiguous; requiring structured rejection reasons and dedicated tab filtering ensures compliance transparency for CAs and clients.

@@ -19,6 +19,7 @@ export const FEATURE_FLAGS = {
   GSTR2B_RECONCILIATION: 'feature_gstr2b_reconciliation',
   WHATSAPP_INTERACTIVE_BOT: 'feature_whatsapp_interactive_bot',
   BUSY_ACCOUNTING_EXPORT: 'feature_busy_accounting_export',
+  INVOICE_AUDIT_TRAIL: 'feature_invoice_audit_trail',
 } as const;
 
 export type FeatureFlagKey = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
@@ -115,6 +116,12 @@ export const FEATURE_FLAG_METADATA: Record<FeatureFlagKey, FeatureFlagMetadata> 
     description: 'Exports approved purchase vouchers formatted for North India Busy Accounting software.',
     category: 'export',
   },
+  [FEATURE_FLAGS.INVOICE_AUDIT_TRAIL]: {
+    key: FEATURE_FLAGS.INVOICE_AUDIT_TRAIL,
+    label: 'Invoice Action & Audit Trail',
+    description: 'Chronological timeline of all invoice events, user actions, OCR history, and rejection reasons.',
+    category: 'review',
+  },
 };
 
 export type SubscriptionTier = 'free' | 'pro' | 'enterprise';
@@ -139,6 +146,7 @@ export const TIER_FEATURE_DEFAULTS: Record<SubscriptionTier, Record<FeatureFlagK
     [FEATURE_FLAGS.GSTR2B_RECONCILIATION]: false,
     [FEATURE_FLAGS.WHATSAPP_INTERACTIVE_BOT]: false,
     [FEATURE_FLAGS.BUSY_ACCOUNTING_EXPORT]: false,
+    [FEATURE_FLAGS.INVOICE_AUDIT_TRAIL]: false,
   },
   pro: {
     [FEATURE_FLAGS.WHATSAPP_INGESTION]: true,
@@ -155,6 +163,7 @@ export const TIER_FEATURE_DEFAULTS: Record<SubscriptionTier, Record<FeatureFlagK
     [FEATURE_FLAGS.GSTR2B_RECONCILIATION]: true,
     [FEATURE_FLAGS.WHATSAPP_INTERACTIVE_BOT]: true,
     [FEATURE_FLAGS.BUSY_ACCOUNTING_EXPORT]: true,
+    [FEATURE_FLAGS.INVOICE_AUDIT_TRAIL]: true,
   },
   enterprise: {
     [FEATURE_FLAGS.WHATSAPP_INGESTION]: true,
@@ -171,5 +180,6 @@ export const TIER_FEATURE_DEFAULTS: Record<SubscriptionTier, Record<FeatureFlagK
     [FEATURE_FLAGS.GSTR2B_RECONCILIATION]: true,
     [FEATURE_FLAGS.WHATSAPP_INTERACTIVE_BOT]: true,
     [FEATURE_FLAGS.BUSY_ACCOUNTING_EXPORT]: true,
+    [FEATURE_FLAGS.INVOICE_AUDIT_TRAIL]: true,
   },
 };

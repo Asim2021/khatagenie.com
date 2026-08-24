@@ -64,6 +64,7 @@ model User {
 
   organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   reviewedInvoices  Invoice[]     @relation("ReviewedByUser")
+  auditLogs         InvoiceAuditLog[]
 
   @@map("users")
 }
@@ -133,6 +134,7 @@ model Invoice {
   reviewedById      String?
   reviewedAt        DateTime?
   reviewNotes       String?
+  rejectionReason   String?
   exportedAt        DateTime?
   tallyVoucherId    String?
 
@@ -143,6 +145,7 @@ model Invoice {
   client            Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
   reviewedBy        User?          @relation("ReviewedByUser", fields: [reviewedById], references: [id], onDelete: SetNull)
   lineItems         InvoiceItem[]
+  auditLogs         InvoiceAuditLog[]
 
   @@index([organizationId, status])
   @@index([senderPhone])
@@ -168,4 +171,20 @@ model InvoiceItem {
   invoice           Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@map("invoice_items")
+}
+
+model InvoiceAuditLog {
+  id                String    @id @default(uuid())
+  invoiceId         String
+  userId            String?
+  action            String    // UPLOADED, OCR_PROCESSED, OCR_FAILED, UPDATED, APPROVED, REJECTED, EXPORTED, OCR_RETRIED
+  details           String?
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+
+  invoice           Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId, createdAt])
+  @@map("invoice_audit_logs")
 }

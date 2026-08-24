@@ -26,12 +26,14 @@ import { FEATURE_FLAGS } from '@khatagenie/types';
 import { useToast } from '../context/ToastContext';
 import { getStateFromGstin } from '@khatagenie/shared';
 import { UploadModal } from '../components/UploadModal';
+import { RejectReasonModal } from '../components/RejectReasonModal';
 
 export const InboxPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('NEEDS_REVIEW');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [isBulkRejectModalOpen, setIsBulkRejectModalOpen] = useState<boolean>(false);
   const [isWorkflowGuideOpen, setIsWorkflowGuideOpen] = useState<boolean>(true);
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -105,14 +107,15 @@ export const InboxPage: React.FC = () => {
 
   // 5. Bulk Status Mutation (Approve / Reject)
   const bulkStatusMutation = useMutation({
-    mutationFn: async ({ ids, status }: { ids: string[]; status: string }) => {
+    mutationFn: async ({ ids, status, rejectionReason }: { ids: string[]; status: string; rejectionReason?: string }) => {
       return await fetchApi<{ message: string; count: number }>('/invoices/bulk-status', {
         method: 'POST',
-        body: JSON.stringify({ invoiceIds: ids, status }),
+        body: JSON.stringify({ invoiceIds: ids, status, rejectionReason }),
       });
     },
     onSuccess: (res, vars) => {
       setSelectedIds([]);
+      setIsBulkRejectModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
       showToast(
@@ -184,7 +187,7 @@ export const InboxPage: React.FC = () => {
 
   const handleBulkReject = () => {
     if (selectedIds.length === 0) return;
-    bulkStatusMutation.mutate({ ids: selectedIds, status: 'REJECTED' });
+    setIsBulkRejectModalOpen(true);
   };
 
   const renderStatusBadge = (status: string) => {
@@ -352,7 +355,7 @@ export const InboxPage: React.FC = () => {
       )}
 
       {/* Top Banner & KPI Stat Cards with Double-Bezel Architecture */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
         {/* Needs Review Card */}
         <div className="rounded-2xl p-1 bg-slate-200/50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-all duration-300">
           <div className="rounded-xl bg-white dark:bg-slate-900/90 p-3 sm:p-4 border border-slate-100 dark:border-slate-800/60 shadow-inner-glow h-full flex flex-col justify-between">
@@ -398,6 +401,28 @@ export const InboxPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Rejected Card */}
+        <div className="rounded-2xl p-1 bg-slate-200/50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-all duration-300">
+          <div className="rounded-xl bg-white dark:bg-slate-900/90 p-3 sm:p-4 border border-slate-100 dark:border-slate-800/60 shadow-inner-glow h-full flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Rejected
+                </p>
+                <h3 className="text-lg sm:text-2xl font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5 sm:mt-1">
+                  {counts.REJECTED || 0}
+                </h3>
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 sm:mt-3 truncate">
+              Reason recorded in audit
+            </p>
+          </div>
+        </div>
+
         {/* Total Invoices Card */}
         <div className="rounded-2xl p-1 bg-slate-200/50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-all duration-300">
           <div className="rounded-xl bg-white dark:bg-slate-900/90 p-3 sm:p-4 border border-slate-100 dark:border-slate-800/60 shadow-inner-glow h-full flex flex-col justify-between">
@@ -415,7 +440,7 @@ export const InboxPage: React.FC = () => {
               </div>
             </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 sm:mt-3 font-mono truncate">
-              Upload & WhatsApp Ingested
+              Upload & WhatsApp
             </p>
           </div>
         </div>
@@ -450,6 +475,7 @@ export const InboxPage: React.FC = () => {
           {[
             { id: 'NEEDS_REVIEW', label: 'Needs Review', count: reviewTabCount },
             { id: 'APPROVED', label: 'Approved', count: counts.APPROVED },
+            { id: 'REJECTED', label: 'Rejected', count: counts.REJECTED },
             { id: 'ALL', label: 'All Invoices' },
           ].map((tab) => (
             <button
@@ -690,6 +716,24 @@ export const InboxPage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Rejection / Review Note Callout if Rejected */}
+                  {inv.status === 'REJECTED' && (
+                    <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-[11px] text-rose-800 dark:text-rose-300">
+                      <div className="flex items-center gap-1 font-bold">
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                        <span>Rejection Reason:</span>
+                      </div>
+                      <p className="mt-0.5 ml-4.5 font-sans leading-tight">
+                        {inv.rejectionReason || 'No specific reason entered.'}
+                      </p>
+                      {inv.reviewedBy && (
+                        <p className="mt-1 ml-4.5 text-[10px] text-rose-600/80 dark:text-rose-400/80 font-mono">
+                          By: {inv.reviewedBy.fullName}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* 1-Tap Action Button */}
                   {inv.status === 'EXTRACTION_FAILED' ? (
                     <button
@@ -705,7 +749,7 @@ export const InboxPage: React.FC = () => {
                       to={`/invoices/${inv.id}/review`}
                       className="btn-primary w-full justify-between py-3 shadow-md"
                     >
-                      <span>Open CA Review Studio</span>
+                      <span>{inv.status === 'REJECTED' ? 'View / Re-evaluate Bill' : 'Open CA Review Studio'}</span>
                       <div className="w-6 h-6 rounded-full bg-black/15 dark:bg-black/20 flex items-center justify-center transition-colors">
                         <ArrowRight className="w-3.5 h-3.5 text-current" />
                       </div>
@@ -857,8 +901,17 @@ export const InboxPage: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Status */}
-                      <td className="py-3 sm:py-4 px-3">{renderStatusBadge(inv.status)}</td>
+                      {/* Status + Rejection Reason Preview */}
+                      <td className="py-3 sm:py-4 px-3">
+                        <div className="space-y-1">
+                          {renderStatusBadge(inv.status)}
+                          {inv.status === 'REJECTED' && inv.rejectionReason && (
+                            <p className="text-[10px] text-rose-600 dark:text-rose-400 truncate max-w-[150px] font-sans" title={inv.rejectionReason}>
+                              {inv.rejectionReason}
+                            </p>
+                          )}
+                        </div>
+                      </td>
 
                       {/* Action */}
                       <td className="py-3 sm:py-4 px-3 text-right">
@@ -878,7 +931,7 @@ export const InboxPage: React.FC = () => {
                               to={`/invoices/${inv.id}/review`}
                               className="btn-action space-x-1.5"
                             >
-                              <span>Review</span>
+                              <span>{inv.status === 'REJECTED' ? 'View' : 'Review'}</span>
                               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                             </Link>
                           )}
@@ -906,6 +959,17 @@ export const InboxPage: React.FC = () => {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         clients={clients}
+      />
+
+      {/* Bulk Reject Reason Modal */}
+      <RejectReasonModal
+        isOpen={isBulkRejectModalOpen}
+        onClose={() => setIsBulkRejectModalOpen(false)}
+        onConfirm={(reason) => {
+          bulkStatusMutation.mutate({ ids: selectedIds, status: 'REJECTED', rejectionReason: reason });
+        }}
+        title={`Reject ${selectedIds.length} Selected Invoice(s)`}
+        isPending={bulkStatusMutation.isPending}
       />
     </div>
   );

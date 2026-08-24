@@ -1,20 +1,27 @@
 # Current Session Handoff: KhataGenie.com
 
-**Current Objective**: Verify end-to-end frontend flows across all pages with live updates, Gemini Flash AI OCR, client gating, and bulk actions.
-**Current State**: 🟢 Complete & Production-Ready. Full monorepo build passes 100%. Live Playwright verification tested and verified.
+**Current Objective**: Complete professional CA invoice rejection workflow with mandatory rejection reasons, dedicated Rejected tab & KPI stat card, and chronological activity audit trail.
+**Current State**: 🟢 Complete & Production-Ready. Full monorepo build passes 100%. All backend schemas, endpoints, and frontend components verified.
 
 ---
 
 ## Recently Completed
-- Configured real Gemini Flash 3.7 AI Vision model using Google's OpenAI-compatible completions endpoint (`https://generativelanguage.googleapis.com/v1beta/openai`).
-- Completely purged all dev mocks, fallback mocks, and hardcoded `Shree Balaji Industrial Hardware` sample data.
-- Built `UploadModal.tsx` with client registration gating when 0 clients exist, and MSME client dropdown assignment.
-- Built 5-step operational workflow onboarding banner in `InboxPage.tsx`.
-- Integrated smart polling in TanStack Query (`refetchInterval: 2500ms` when status is `PROCESSING`), updating the table in real-time without manual page refreshes.
-- Built floating dark Bulk Actions Toolbar with multi-select checkboxes for Bulk Approve, Bulk Reject, Bulk Delete, and Clear Selection.
-- Added row-level Delete and Retry OCR endpoints and buttons.
-- Updated Zod schemas with `z.coerce.number()` and `.passthrough()` to handle Prisma Decimal strings seamlessly.
-- Verified all flows via Playwright in browser: upload $\rightarrow$ live polling $\rightarrow$ Gemini Flash extraction $\rightarrow$ Review Studio math check $\rightarrow$ 1-click Approve $\rightarrow$ bulk actions.
+- **Mandatory Rejection Reason Workflow**:
+  - Added `rejectionReason` column to Prisma `Invoice` model and shared schemas.
+  - Built `RejectReasonModal.tsx` supporting 7 accounting preset reasons (Blurry Bill, Duplicate, Non-GST, Invalid GSTIN, Math Mismatch, Wrong Client, Other) and custom remarks.
+  - Integrated modal into `InvoiceReviewPage.tsx` and bulk reject action in `InboxPage.tsx`.
+- **Dedicated Rejected Filter Tab & KPI Stat Card**:
+  - Added `Rejected` tab with dynamic badge count in `InboxPage.tsx`.
+  - Added 5th KPI card for rejected items with rose styling and `XCircle` icon.
+  - Displayed rejection reason snippets and reviewer attribution in desktop table rows and mobile cards.
+  - Added high-visibility `REJECTED INVOICE` banner in `InvoiceReviewPage.tsx` with "Reopen for Review" action.
+- **Enterprise Action Audit Trail**:
+  - Added Prisma `InvoiceAuditLog` model and `AuditLogger` service (`apps/api/src/services/auditLogger.ts`).
+  - Recorded lifecycle events: `UPLOADED`, `OCR_PROCESSED`, `OCR_FAILED`, `UPDATED`, `APPROVED`, `REJECTED`, `RE_REVIEWED`, `EXPORTED`, `OCR_RETRIED` with actor details and timestamps.
+  - Created `InvoiceAuditTimeline.tsx` component and embedded it into `InvoiceReviewPage.tsx`.
+  - Feature-gated audit trail behind `FEATURE_FLAGS.INVOICE_AUDIT_TRAIL` (default `false` in `free` tier).
+- **Monorepo Build Verification**:
+  - `npm run build`: 100% Passed across `@khatagenie/types`, `@khatagenie/shared`, `@khatagenie/api`, and `@khatagenie/web`.
 
 ---
 
@@ -29,22 +36,24 @@
 ---
 
 ## Important Decisions
-- `DEC-011`: Standardized on Google Gemini OpenAI-compatible completions endpoint with multi-model fallback chain (`gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-2.5-pro`).
-- `DEC-012`: Adopted `z.coerce.number()` on all numeric schema inputs in `packages/types/src/invoice.ts`.
-- `DEC-013`: Enforced client-first ingestion gating in `UploadModal.tsx`.
+- `DEC-014`: Mandatory Rejection Reason & Audit Logging: Every rejected invoice must capture an explicit reason (via presets or custom text), and all invoice state transitions are permanently recorded in `InvoiceAuditLog` with actor attribution.
 
 ---
 
 ## Files / Components Worked On
-- `apps/api/.env`: Configured `AI_BASE_URL` and `AI_MODEL="gemini-3.7-flash"`.
-- `apps/api/src/services/vision.ts`: Multi-model fallback, URL normalization, dynamic dotenv reload.
-- `apps/api/src/services/queue.ts`: Safe numeric type coercion for line items createMany.
-- `apps/api/src/services/storage.ts`: Added `.svg` to safe file extensions.
-- `apps/api/src/routes/invoices.ts`: Added single delete, bulk delete, bulk status, retry OCR, safe line items mapping.
-- `packages/types/src/invoice.ts`: Added `z.coerce.number()` and `.passthrough()` to invoice schemas.
-- `apps/web/src/components/UploadModal.tsx`: Portal-based upload modal with client gating and client assignment.
-- `apps/web/src/pages/InboxPage.tsx`: 5-step workflow banner, smart polling, bulk actions toolbar, row delete.
-- `apps/web/src/pages/InvoiceReviewPage.tsx`: Split-screen review, retry OCR trigger, delete invoice action.
+- `packages/types/src/featureFlags.ts`: Registered `INVOICE_AUDIT_TRAIL` flag and metadata.
+- `packages/types/src/invoice.ts`: Added `rejectionReason` to schemas and declared `InvoiceAuditLog` interface.
+- `apps/api/prisma/schema.prisma`: Added `rejectionReason` and `InvoiceAuditLog` model with relations.
+- `apps/api/src/services/auditLogger.ts`: Standardized audit logger recorder helper.
+- `apps/api/src/routes/invoices.ts`: Handled `rejectionReason`, audit logs in `GET`, `PATCH`, `POST /upload`, `POST /bulk-status`, `POST /retry-ocr`, and cascade deletions.
+- `apps/api/src/services/queue.ts`: Recorded audit logs on OCR extraction success & failure.
+- `apps/api/src/routes/exports.ts`: Recorded audit log on Tally XML export.
+- `apps/web/src/components/RejectReasonModal.tsx`: Accessible reason dialog with accounting presets and remarks.
+- `apps/web/src/components/InvoiceAuditTimeline.tsx`: Activity history component with actor details and timestamps.
+- `apps/web/src/components/icons/index.tsx`: Added `History` and `Bot` icons.
+- `apps/web/src/pages/InboxPage.tsx`: Added `Rejected` tab, 5th KPI card, rejection reason preview in tables/cards, bulk reject modal.
+- `apps/web/src/pages/InvoiceReviewPage.tsx`: Integrated rejection reason modal, decision status banners, and embedded audit timeline.
+- `apps/web/src/pages/AdminFeatureFlags.tsx`: Feature matrix with audit trail toggle.
 
 ---
 
